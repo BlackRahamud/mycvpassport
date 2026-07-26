@@ -2,13 +2,21 @@
    appear in (a) the live preview and (b) the exported PDF, per template?
 
    Seeds the builder with an all-fields fixture whose every value is a
-   distinct marker token, then for each template:
+   distinct marker token, then for each template runs TWO passes:
+
+   Pass 1 — everything prints:
      1. loads /builder with the draft, reads the canonical capture node's
         innerText  → preview coverage
      2. exports a real PDF the production way (captured HTML → print
         wrapper → shared printLayoutPass → Chromium page.pdf), extracts
         its text → PDF coverage
      3. asserts every expected marker appears in BOTH.
+
+   Pass 2 — "Show on CV" toggles (hiddenPersonalDetails):
+     re-renders with visa status / nationality / DOB switched off and
+     asserts those three are gone from preview AND PDF, while the rest of
+     the CV is untouched. A hide that takes neighbouring fields with it
+     fails just as loudly as one that does nothing.
 
    Documented intentional omissions are excluded per template (see
    EXPECTED_ABSENT below) so the harness fails only on silent drops.
@@ -123,12 +131,30 @@ const MARKERS = {
 };
 
 /* Documented intentional omissions (flagged to founder, not bugs):
-   - customFields render only on T10 + T19 (regional-field surface).
    - references renders only on T10, T11, T19 (no builder input; default string).
-   - T11 header shows personal VALUES without labels — values still checked. */
+   - T11 header shows personal VALUES without labels — values still checked.
+   customFields used to be excluded on all but T10 + T19; they now render on
+   all 19 (imported fields must never silently vanish), so the exclusion is
+   gone and `customField` is asserted everywhere. */
 const EXPECTED_ABSENT = {
-  customField: TEMPLATE_IDS.filter((id) => id !== 10 && id !== 19),
   references: TEMPLATE_IDS.filter((id) => id !== 10 && id !== 11 && id !== 19),
+};
+
+/* Pass 2 — "Show on CV" toggles. Same fixture with the three toggleable
+   fields switched off: each must vanish from preview AND PDF on every
+   template, while everything else still prints (a hide that takes the rest
+   of the block with it is just as broken as one that does nothing). */
+const HIDDEN_KEYS = ["visaStatus", "nationality", "dob"];
+const HIDDEN_MARKERS = { visaStatus: MARKERS.visaStatus, nationality: MARKERS.nationality, dob: MARKERS.dob };
+const STILL_VISIBLE_MARKERS = {
+  maritalStatus: MARKERS.maritalStatus,
+  gender: MARKERS.gender,
+  drivingLicense: MARKERS.drivingLicense,
+  availability: MARKERS.availability,
+  willingToRelocate: MARKERS.willingToRelocate,
+  customField: MARKERS.customField,
+  name: MARKERS.name,
+  expCompany: MARKERS.expCompany,
 };
 
 const expectedMarkersFor = (id) =>
@@ -211,15 +237,17 @@ const contains = (hay, needle) => {
 const browser = await chromium.launch();
 const matrix = [];
 
-for (const id of TEMPLATE_IDS) {
-  console.log(`\n── Template ${id} ──`);
+/* One render of one template with one CV: seed the draft, read the canonical
+   capture node for preview text, then print that same node to a real PDF the
+   production way. Returns null if the preview never settles. */
+async function renderTemplate(id, cv, pdfName) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 } });
-  await ctx.addInitScript(({ cv, tid }) => {
+  await ctx.addInitScript(({ cvData, tid }) => {
     localStorage.setItem(
       "cvp_cv_draft:new:default",
-      JSON.stringify({ version: 2, cv, templateId: tid, resumeId: null, ownerId: null, updatedAt: Date.now() }),
+      JSON.stringify({ version: 2, cv: cvData, templateId: tid, resumeId: null, ownerId: null, updatedAt: Date.now() }),
     );
-  }, { cv: FIXTURE_CV, tid: id });
+  }, { cvData: cv, tid: id });
   const app = await ctx.newPage();
   app.on("pageerror", (e) => console.log("  [pageerror]", e.message));
   await app.goto("http://localhost:4193/builder", { waitUntil: "networkidle" });
@@ -231,9 +259,8 @@ for (const id of TEMPLATE_IDS) {
       { timeout: 20000 },
     );
   } catch {
-    check(false, `T${id}: preview never settled`);
     await ctx.close();
-    continue;
+    return null;
   }
   await app.waitForTimeout(600);
 
@@ -246,7 +273,7 @@ for (const id of TEMPLATE_IDS) {
     return el ? el.outerHTML : null;
   });
   await ctx.close();
-  if (!captured) { check(false, `T${id}: no capture node`); continue; }
+  if (!captured) return null;
 
   /* real PDF, the production way */
   const printCtx = await browser.newContext({ viewport: { width: 794, height: 1123, deviceScaleFactor: 2 } });
@@ -272,18 +299,45 @@ for (const id of TEMPLATE_IDS) {
       : { ...sharedPdfOpts, preferCSSPageSize: false, margin: { top: "10mm", bottom: "15mm", left: "0mm", right: "0mm" } },
   );
   await printCtx.close();
-  writeFileSync(join(OUT, `t${id}.pdf`), pdfBuf);
+  writeFileSync(join(OUT, pdfName), pdfBuf);
 
   const proxy = await getDocumentProxy(new Uint8Array(pdfBuf));
   const { text: pdfText } = await extractText(proxy, { mergePages: true });
+  return { previewText, pdfText };
+}
 
-  const row = { id, missingPreview: [], missingPdf: [] };
+for (const id of TEMPLATE_IDS) {
+  console.log(`\n── Template ${id} ──`);
+
+  /* ── pass 1: every field the user filled must print ── */
+  const full = await renderTemplate(id, FIXTURE_CV, `t${id}.pdf`);
+  if (!full) { check(false, `T${id}: preview never settled`); continue; }
+
+  const row = { id, missingPreview: [], missingPdf: [], leaked: [], collateral: [] };
   for (const [key, marker] of expectedMarkersFor(id)) {
-    const inPreview = contains(previewText, marker);
-    const inPdf = contains(pdfText, marker);
+    const inPreview = contains(full.previewText, marker);
+    const inPdf = contains(full.pdfText, marker);
     if (!inPreview) row.missingPreview.push(key);
     if (!inPdf) row.missingPdf.push(key);
     check(inPreview && inPdf, `T${id} ${key} ("${marker}") — preview:${inPreview ? "ok" : "MISSING"} pdf:${inPdf ? "ok" : "MISSING"}`);
+  }
+
+  /* ── pass 2: the three toggled-off fields must vanish, nothing else ── */
+  const hidden = await renderTemplate(id, { ...FIXTURE_CV, hiddenPersonalDetails: HIDDEN_KEYS }, `t${id}-hidden.pdf`);
+  if (!hidden) { check(false, `T${id}: hidden-pass preview never settled`); matrix.push(row); continue; }
+
+  for (const [key, marker] of Object.entries(HIDDEN_MARKERS)) {
+    const inPreview = contains(hidden.previewText, marker);
+    const inPdf = contains(hidden.pdfText, marker);
+    if (inPreview || inPdf) row.leaked.push(key);
+    check(!inPreview && !inPdf, `T${id} hide:${key} ("${marker}") — preview:${inPreview ? "STILL PRINTS" : "gone"} pdf:${inPdf ? "STILL PRINTS" : "gone"}`);
+  }
+  for (const [key, marker] of Object.entries(STILL_VISIBLE_MARKERS)) {
+    if ((EXPECTED_ABSENT[key] || []).includes(id)) continue;
+    const inPreview = contains(hidden.previewText, marker);
+    const inPdf = contains(hidden.pdfText, marker);
+    if (!inPreview || !inPdf) row.collateral.push(key);
+    check(inPreview && inPdf, `T${id} kept:${key} ("${marker}") — preview:${inPreview ? "ok" : "LOST"} pdf:${inPdf ? "ok" : "LOST"}`);
   }
   matrix.push(row);
 }
@@ -291,10 +345,68 @@ for (const id of TEMPLATE_IDS) {
 await browser.close();
 server.close();
 
-console.log("\n── Field × template matrix (missing only) ──");
+/* ── serverLib pass: the OTHER render path ─────────────────────
+   api/generate-pdf.js builds HTML from src/serverLib/*, not from the preview
+   capture, so a field can be correct in the browser and still be dropped
+   there. Same two assertions, no browser needed. Templates without a
+   serverLib builder (15–18) fall back to T10 in generate-pdf.        */
+const SERVERLIB_BUILDERS = {
+  1: ["bannerTemplate1Html", "pdfModernEmerald"],
+  2: ["twocolTemplate2Html", "buildTwocolTemplate2Html"],
+  3: ["sidebarTemplate3Html", "buildSidebarTemplate3Html"],
+  4: ["timelineTemplate4Html", "buildTimelineTemplate4Html"],
+  5: ["gulfExecTemplate5Html", "buildGulfExecTemplate5Html"],
+  6: ["bankingTemplate6Html", "buildBankingTemplate6Html"],
+  7: ["compactProTemplate7Html", "buildCompactProTemplate7Html"],
+  8: ["creativeSidebarTemplate8Html", "buildCreativeSidebarTemplate8Html"],
+  9: ["hospitalityTemplate9Html", "buildHospitalityTemplate9Html"],
+  10: ["atsInternationalTemplate10Html", "buildATSInternationalTemplate10Html"],
+  11: ["techITProTemplate11Html", "buildTechITProTemplate11Html"],
+  12: ["template12Builder", "buildTemplate12Html"],
+  13: ["financeTemplate13Html", "buildFinanceTemplate13Html"],
+  14: ["template14Builder", "buildTemplate14Html"],
+  19: ["uaeAtsTemplate19Html", "buildUaeAtsTemplate19Html"],
+};
+const deTag = (html) => String(html || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ");
+
+console.log("\n── serverLib HTML path (api/generate-pdf) ──");
+for (const id of TEMPLATE_IDS) {
+  const entry = SERVERLIB_BUILDERS[id];
+  if (!entry) { console.log(`  – T${id}: no serverLib builder (generate-pdf falls back to T10)`); continue; }
+  const [mod, fn] = entry;
+  let build;
+  try {
+    build = require(`../src/serverLib/${mod}.js`)[fn];
+  } catch (e) {
+    check(false, `T${id} serverLib: ${mod} failed to load — ${e.message}`);
+    continue;
+  }
+  if (typeof build !== "function") { check(false, `T${id} serverLib: ${fn} is not a function`); continue; }
+  let fullText = "";
+  let hiddenText = "";
+  try {
+    fullText = deTag(build(FIXTURE_CV));
+    hiddenText = deTag(build({ ...FIXTURE_CV, hiddenPersonalDetails: HIDDEN_KEYS }));
+  } catch (e) {
+    check(false, `T${id} serverLib: threw — ${e.message}`);
+    continue;
+  }
+  check(contains(fullText, MARKERS.customField), `T${id} serverLib customField ("${MARKERS.customField}")`);
+  for (const [key, marker] of Object.entries(HIDDEN_MARKERS)) {
+    check(!contains(hiddenText, marker), `T${id} serverLib hide:${key} ("${marker}")`);
+  }
+  check(contains(hiddenText, MARKERS.maritalStatus), `T${id} serverLib kept:maritalStatus`);
+  check(contains(hiddenText, MARKERS.customField), `T${id} serverLib kept:customField`);
+}
+
+console.log("\n── Field × template matrix (problems only) ──");
 for (const r of matrix) {
-  const ok = r.missingPreview.length === 0 && r.missingPdf.length === 0;
-  console.log(`T${r.id}: ${ok ? "COMPLETE" : `preview missing [${r.missingPreview.join(", ")}] · pdf missing [${r.missingPdf.join(", ")}]`}`);
+  const problems = [];
+  if (r.missingPreview.length) problems.push(`preview missing [${r.missingPreview.join(", ")}]`);
+  if (r.missingPdf.length) problems.push(`pdf missing [${r.missingPdf.join(", ")}]`);
+  if (r.leaked.length) problems.push(`hidden but still printing [${r.leaked.join(", ")}]`);
+  if (r.collateral.length) problems.push(`lost to the hide [${r.collateral.join(", ")}]`);
+  console.log(`T${r.id}: ${problems.length === 0 ? "COMPLETE" : problems.join(" · ")}`);
 }
 console.log(failures === 0 ? "\nALL FIELD-COVERAGE CHECKS PASSED" : `\n${failures} FIELD-COVERAGE CHECK(S) FAILED`);
 process.exit(failures === 0 ? 0 : 1);

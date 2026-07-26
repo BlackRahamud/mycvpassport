@@ -6,6 +6,7 @@
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildCustomFieldEntries, isPersonalDetailHidden } from "./cvShared";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
@@ -203,7 +204,15 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
   // values only, no labels, one per line with an accent chevron, in the same
   // field order. drivingLicense intentionally excluded — the twin keeps it in
   // its "Additional" section, not here.
-  const personalInfo = [cv.nationality, cv.visaStatus, cv.dob, cv.gender, cv.maritalStatus]
+  // Fields the user switched off in Personal Details are suppressed here; the
+  // data stays in the draft, only the print is skipped.
+  const personalInfo = [
+    isPersonalDetailHidden(cv, "nationality") ? "" : cv.nationality,
+    isPersonalDetailHidden(cv, "visaStatus") ? "" : cv.visaStatus,
+    isPersonalDetailHidden(cv, "dob") ? "" : cv.dob,
+    isPersonalDetailHidden(cv, "gender") ? "" : cv.gender,
+    isPersonalDetailHidden(cv, "maritalStatus") ? "" : cv.maritalStatus,
+  ]
     .map((v) => (v == null ? "" : String(v).trim()))
     .filter(Boolean);
 
@@ -215,10 +224,17 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
   // Mirrors the serverLib twin's sidebar "Additional" section: Availability,
   // Driving License, Relocate — values with a chevron, same order. This is
   // where drivingLicense lives (kept out of the header info strip on purpose).
+  // Imported custom fields land here too, labelled — this sidebar is T11's
+  // "Additional Information" surface and a bare value ("Nafistoken") would
+  // mean nothing without its name. Regional twins are excluded because the
+  // Personal Info block above already renders those flat.
   const additionalBits = [
-    cv.availability,
-    cv.drivingLicense,
-    cv.willingToRelocate ? `Relocate: ${String(cv.willingToRelocate).trim()}` : "",
+    isPersonalDetailHidden(cv, "availability") ? "" : cv.availability,
+    isPersonalDetailHidden(cv, "drivingLicense") ? "" : cv.drivingLicense,
+    cv.willingToRelocate && !isPersonalDetailHidden(cv, "willingToRelocate")
+      ? `Relocate: ${String(cv.willingToRelocate).trim()}`
+      : "",
+    ...buildCustomFieldEntries(cv, { excludeRegionalTwins: true }).map((e) => `${e.label}: ${e.value}`),
   ]
     .map((v) => (v == null ? "" : String(v).trim()))
     .filter(Boolean);

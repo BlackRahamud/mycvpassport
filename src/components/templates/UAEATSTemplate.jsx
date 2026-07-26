@@ -25,7 +25,7 @@
 // =============================================================
 
 import React from "react";
-import { buildPersonalDetailsEntries } from "../../cvShared";
+import { buildPersonalDetailsEntries, buildCustomFieldEntries } from "../../cvShared";
 import { parseExperiencePoints } from "../../experiencePointsPreview";
 
 const SECTION_TITLES = {
@@ -42,15 +42,9 @@ const SECTION_TITLES = {
   references: "References",
 };
 
-// customFields entries arrive with their own .name string. These fall
-// back when an entry is missing .name but has a known .id (research
-// section 12 - regional fields rendered with stable labels).
-const REGIONAL_LABEL_FALLBACK = {
-  visa_status: "Visa Status",
-  notice_period: "Notice Period",
-  driving_license: "Driving License",
-  nafis_registered: "Nafis Registered",
-};
+// customFields entries arrive with their own .name string. The id → label
+// fallback for entries missing .name now lives in cvShared.js
+// (REGIONAL_LABEL_FALLBACK) so every template resolves them identically.
 
 // --- Pure helpers (also used by the server HTML twin's logic shape) ---
 
@@ -80,12 +74,11 @@ function buildStatusEntries(cv) {
     seen.add(key);
     entries.push({ name: n, value: v });
   };
-  if (Array.isArray(cv.customFields)) {
-    for (const f of cv.customFields) {
-      if (!f || typeof f !== "object") continue;
-      const id = trimStr(f.id);
-      push(trimStr(f.name) || REGIONAL_LABEL_FALLBACK[id] || "", f.value);
-    }
+  /* Custom entries lead. Routed through the shared builder so a field the
+     user switched off in Personal Details can't come back in through its
+     imported customFields twin. */
+  for (const e of buildCustomFieldEntries(cv)) {
+    push(e.label, e.value);
   }
   for (const d of buildPersonalDetailsEntries(cv)) {
     push(d.label, d.value);

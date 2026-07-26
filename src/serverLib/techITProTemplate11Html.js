@@ -9,6 +9,8 @@ const {
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
   technicalSkillsGroups,
+  buildCustomFieldEntries,
+  isPersonalDetailHidden,
 } = require("./pdfCommon");
 
 const ACCENT = "#4A90D9";
@@ -72,25 +74,26 @@ function buildTechITProTemplate11Html(rawCv) {
       ${cv.location ? `<div>${escapeHtml(stripEmojiPictographs(cv.location))}</div>` : ""}
     </div>`;
 
-  if (cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) {
-    let pers = "";
-    if (cv.nationality) {
-      pers += `<div><span class="t11-lang-chev">›</span> ${escapeHtml(stripEmojiPictographs(cv.nationality))}</div>`;
+  /* Fields the user switched off in Personal Details are suppressed here; the
+     data stays in the draft, only the print is skipped.
+     TWIN: personalInfo in src/Template11TechITPro.js. */
+  {
+    const shown = (key) => (isPersonalDetailHidden(cv, key) ? "" : stripEmojiPictographs(cv[key] || ""));
+    const persValues = [
+      shown("nationality"),
+      shown("visaStatus"),
+      shown("dob"),
+      shown("gender"),
+      shown("maritalStatus"),
+    ]
+      .map((v) => String(v || "").trim())
+      .filter(Boolean);
+    if (persValues.length) {
+      const pers = persValues
+        .map((v) => `<div><span class="t11-lang-chev">›</span> ${escapeHtml(v)}</div>`)
+        .join("");
+      sidebar += `${sideLabel("Personal Info")}<div class="t11-side-text">${pers}</div>`;
     }
-    if (cv.visaStatus) {
-      pers += `<div><span class="t11-lang-chev">›</span> ${escapeHtml(stripEmojiPictographs(cv.visaStatus))}</div>`;
-    }
-    if (cv.dob) {
-      const d = stripEmojiPictographs(cv.dob);
-      if (d) pers += `<div><span class="t11-lang-chev">›</span> ${escapeHtml(d)}</div>`;
-    }
-    if (cv.gender) {
-      pers += `<div><span class="t11-lang-chev">›</span> ${escapeHtml(stripEmojiPictographs(cv.gender))}</div>`;
-    }
-    if (cv.maritalStatus) {
-      pers += `<div><span class="t11-lang-chev">›</span> ${escapeHtml(stripEmojiPictographs(cv.maritalStatus))}</div>`;
-    }
-    sidebar += `${sideLabel("Personal Info")}<div class="t11-side-text">${pers}</div>`;
   }
 
   if (skillList.length > 0 || techGroups.length > 0) {
@@ -145,21 +148,28 @@ function buildTechITProTemplate11Html(rawCv) {
     sidebar += `<div class="t11-cert-section" data-block="certifications">${sideLabel("Certifications")}${cert}</div>`;
   }
 
-  if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
-    let add = "";
-    if (cv.availability) {
-      const tx = escapeHtml(stripEmojiPictographs(cv.availability));
-      if (tx) add += `<div><span class="t11-lang-chev">›</span> ${tx}</div>`;
+  /* "Additional" doubles as T11's Additional Information surface: imported
+     custom fields print here labelled, since a bare value ("Nafistoken")
+     means nothing without its name. Regional twins are excluded — the
+     Personal Info block above already renders those flat.
+     TWIN: additionalBits in src/Template11TechITPro.js. */
+  {
+    const shown = (key) => (isPersonalDetailHidden(cv, key) ? "" : stripEmojiPictographs(cv[key] || ""));
+    const relocate = String(shown("willingToRelocate") || "").trim();
+    const addValues = [
+      String(shown("availability") || "").trim(),
+      String(shown("drivingLicense") || "").trim(),
+      relocate ? `Relocate: ${relocate}` : "",
+      ...buildCustomFieldEntries(cv, { excludeRegionalTwins: true }).map(
+        (e) => `${stripEmojiPictographs(e.label)}: ${stripEmojiPictographs(e.value)}`,
+      ),
+    ].filter(Boolean);
+    if (addValues.length) {
+      const add = addValues
+        .map((v) => `<div><span class="t11-lang-chev">›</span> ${escapeHtml(v)}</div>`)
+        .join("");
+      sidebar += `${sideLabel("Additional")}<div class="t11-side-text">${add}</div>`;
     }
-    if (cv.drivingLicense) {
-      const tx = escapeHtml(stripEmojiPictographs(cv.drivingLicense));
-      if (tx) add += `<div><span class="t11-lang-chev">›</span> ${tx}</div>`;
-    }
-    if (cv.willingToRelocate) {
-      const tx = escapeHtml(stripEmojiPictographs(cv.willingToRelocate));
-      if (tx) add += `<div><span class="t11-lang-chev">›</span> Relocate: ${tx}</div>`;
-    }
-    if (add) sidebar += `${sideLabel("Additional")}<div class="t11-side-text">${add}</div>`;
   }
 
   sidebar += `</div></aside>`;

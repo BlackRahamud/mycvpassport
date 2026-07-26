@@ -20,6 +20,7 @@
 
 import React from "react";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { isPersonalDetailHidden } from "./cvShared";
 
 const COLORS = {
   ACCENT_SKY:    "#0EA5E9",   // sky-500 - top bar, dot bullets, separators
@@ -163,15 +164,19 @@ function Header({ cv }) {
   const role = trimStr(cv.title);
   const contactItems = [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.linkedin), trimStr(cv.location)].filter(Boolean);
 
-  const nationality = readCustomField(cv, ["nationality"], "nationality");
-  const visa = readCustomField(cv, ["visa_status"], "visaStatus");
+  /* "Show on CV" toggles: a hidden field is suppressed from BOTH its flat
+     value and its imported customFields twin, or the imported copy would keep
+     printing after the user switched it off. Data is untouched. */
+  const hidden = (key) => isPersonalDetailHidden(cv, key);
+  const nationality = hidden("nationality") ? "" : readCustomField(cv, ["nationality"], "nationality");
+  const visa = hidden("visaStatus") ? "" : readCustomField(cv, ["visa_status"], "visaStatus");
   const notice = readCustomField(cv, ["notice_period"], null);
-  const dob = readCustomField(cv, ["date_of_birth", "dob"], "dob");
-  const marital = readCustomField(cv, ["marital_status"], "maritalStatus");
-  const license = readCustomField(cv, ["driving_license"], "drivingLicense");
-  const gender = readCustomField(cv, ["gender"], "gender");
-  const availability = readCustomField(cv, ["availability"], "availability");
-  const relocate = readCustomField(cv, ["willing_to_relocate"], "willingToRelocate");
+  const dob = hidden("dob") ? "" : readCustomField(cv, ["date_of_birth", "dob"], "dob");
+  const marital = hidden("maritalStatus") ? "" : readCustomField(cv, ["marital_status"], "maritalStatus");
+  const license = hidden("drivingLicense") ? "" : readCustomField(cv, ["driving_license"], "drivingLicense");
+  const gender = hidden("gender") ? "" : readCustomField(cv, ["gender"], "gender");
+  const availability = hidden("availability") ? "" : readCustomField(cv, ["availability"], "availability");
+  const relocate = hidden("willingToRelocate") ? "" : readCustomField(cv, ["willing_to_relocate"], "willingToRelocate");
   const statusItems = [];
   if (nationality) statusItems.push(`Nationality: ${nationality}`);
   if (visa) statusItems.push(`Visa: ${visa}`);

@@ -200,6 +200,30 @@ const builderThemeAttr = (page) =>
     `salary=${salaryCount}, passport=${passportCount}, invite=${inviteCount}`,
   );
 
+  /* "Show on CV" toggles: default ON, flip writes hiddenPersonalDetails into
+     the draft, and the VALUE survives the flip (hiding is print-only). */
+  const visaSwitch = page.locator('.cvp-builder-mobile-form button[role="switch"][aria-label="Show Visa status on CV"]').first();
+  await visaSwitch.scrollIntoViewIfNeeded();
+  const switchCount = await page.locator('.cvp-builder-mobile-form button[role="switch"][aria-label$="on CV"]').count();
+  const defaultOn = await visaSwitch.getAttribute("aria-checked");
+  const visaBefore = (await readDraft(page))?.cv?.visaStatus;
+  await visaSwitch.click();
+  await page.waitForTimeout(900);
+  const afterOff = await visaSwitch.getAttribute("aria-checked");
+  draft = await readDraft(page);
+  const hiddenList = draft?.cv?.hiddenPersonalDetails || [];
+  const valueKept = draft?.cv?.visaStatus === visaBefore && Boolean(visaBefore);
+  await visaSwitch.click();
+  await page.waitForTimeout(900);
+  const backOn = (await readDraft(page))?.cv?.hiddenPersonalDetails || [];
+  log(
+    "show-on-CV: 3 toggles, default ON, flip persists, value survives",
+    switchCount === 3 && defaultOn === "true" && afterOff === "false"
+      && hiddenList.includes("visaStatus") && valueKept && !backOn.includes("visaStatus"),
+    `switches=${switchCount}, default=${defaultOn}, afterOff=${afterOff}, hidden=[${hiddenList.join(",")}], valueKept=${valueKept}, afterOn=[${backOn.join(",")}]`,
+  );
+  await page.screenshot({ path: join(OUT, "05b-show-on-cv-393.png") });
+
   /* the completion counter denominator must match the fields that render */
   const pdText = (await page.locator('.cvp-builder-mobile-form [data-cvp-accordion="personalDetails"]').first().innerText()) || "";
   const pdInputs = await page.locator('.cvp-builder-mobile-form [data-cvp-accordion="personalDetails"] input, .cvp-builder-mobile-form [data-cvp-accordion="personalDetails"] .cvp-corridor-trigger').count();

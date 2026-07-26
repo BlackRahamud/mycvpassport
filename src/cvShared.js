@@ -86,6 +86,9 @@ export const EMPTY_RESUME = {
   publications: "",
   builderExtraSectionIds: [],
   customFields: [],
+  /* Personal-detail keys the user chose NOT to print. Empty = Gulf default,
+     everything prints. See HIDEABLE_PERSONAL_DETAILS. */
+  hiddenPersonalDetails: [],
   availability: "",
   drivingLicense: "",
   willingToRelocate: "",
@@ -256,43 +259,130 @@ export function isGulfLocation(location) {
   return GULF_LOCATION_SIGNALS.some((signal) => lower.includes(signal));
 }
 
-// Ordered personal-details entries for template headers (Gulf convention:
-// nationality + visa status lead). Returns [{ label, value }] for ONLY the
-// filled fields — empty/whitespace values are skipped, never "N/A".
-// Twin: buildPersonalDetailsEntries in src/serverLib/pdfCommon.js (CommonJS)
-// — keep the field order and trimming identical when changing either.
-export function buildPersonalDetailsEntries(resume) {
+// The eight printable Personal Details fields, in Gulf convention order
+// (nationality + visa status lead).
+// Twin: PERSONAL_DETAIL_DEFS in src/serverLib/pdfCommon.js (CommonJS).
+export const PERSONAL_DETAIL_DEFS = [
+  ["Nationality", "nationality"],
+  ["Visa Status", "visaStatus"],
+  ["Date of Birth", "dob"],
+  ["Marital Status", "maritalStatus"],
+  ["Driving License", "drivingLicense"],
+  ["Gender", "gender"],
+  ["Availability", "availability"],
+  ["Willing to Relocate", "willingToRelocate"],
+];
+
+/* Fields the builder offers a "Show on CV" toggle for. Gulf CVs conventionally
+   carry all three; on an India- or Western-targeted CV the same three invite
+   age and origin screening, so the user can keep the DATA and suppress the
+   PRINT. Default is ON — `hiddenPersonalDetails` absent or empty means every
+   field prints, so existing drafts and the Gulf default are unchanged.
+   The hide mechanism below works for ANY of the eight keys; only these three
+   are exposed in the UI today. */
+export const HIDEABLE_PERSONAL_DETAILS = ["visaStatus", "nationality", "dob"];
+
+// customFields[] ids that are just an imported spelling of a flat field. When
+// the flat field is hidden its imported twin must hide with it, or toggling
+// "Visa status" off would leave the imported copy printing.
+const CUSTOM_ID_TO_PERSONAL_KEY = {
+  nationality: "nationality",
+  visa_status: "visaStatus",
+  date_of_birth: "dob",
+  dob: "dob",
+  marital_status: "maritalStatus",
+  driving_license: "drivingLicense",
+  gender: "gender",
+  availability: "availability",
+  willing_to_relocate: "willingToRelocate",
+};
+
+// Labels for imported regional fields that arrive without a .name.
+// Twin: REGIONAL_LABEL_FALLBACK in src/serverLib/pdfCommon.js.
+export const REGIONAL_LABEL_FALLBACK = {
+  visa_status: "Visa Status",
+  notice_period: "Notice Period",
+  driving_license: "Driving License",
+  date_of_birth: "Date of Birth",
+  marital_status: "Marital Status",
+  willing_to_relocate: "Willing to Relocate",
+  nationality: "Nationality",
+  gender: "Gender",
+  availability: "Availability",
+  nafis_registered: "Nafis Registered",
+};
+
+// Is this personal-detail key suppressed from print? Data is untouched either
+// way — the toggle controls rendering only.
+// Twin: isPersonalDetailHidden in src/serverLib/pdfCommon.js.
+export function isPersonalDetailHidden(resume, key) {
+  if (!resume || typeof resume !== "object") return false;
+  const hidden = resume.hiddenPersonalDetails;
+  return Array.isArray(hidden) && hidden.includes(key);
+}
+
+/* Imported customFields[] as printable { label, value } entries. Every custom
+   field the user provided prints somewhere — before this they rendered on T10
+   and T19 only and vanished on the other 17 templates. Entries whose id is a
+   hidden flat field's twin are dropped; the rest keep their imported name.
+   Pass { excludeRegionalTwins: true } from a template that already renders the
+   regional fields itself (T10, T11) so an imported "nationality" doesn't print
+   a second time next to the flat one.
+   Twin: buildCustomFieldEntries in src/serverLib/pdfCommon.js. */
+export function buildCustomFieldEntries(resume, opts) {
   if (!resume || typeof resume !== "object") return [];
-  const defs = [
-    ["Nationality", "nationality"],
-    ["Visa Status", "visaStatus"],
-    ["Date of Birth", "dob"],
-    ["Marital Status", "maritalStatus"],
-    ["Driving License", "drivingLicense"],
-    ["Gender", "gender"],
-    ["Availability", "availability"],
-    ["Willing to Relocate", "willingToRelocate"],
-  ];
+  if (!Array.isArray(resume.customFields)) return [];
+  const excludeTwins = Boolean(opts && opts.excludeRegionalTwins);
   const entries = [];
-  for (const [label, key] of defs) {
-    const raw = resume[key];
-    const value = raw == null ? "" : String(raw).trim();
-    if (value) entries.push({ label, value });
+  for (const f of resume.customFields) {
+    if (!f || typeof f !== "object") continue;
+    const id = String(f.id || "").trim();
+    const label = String(f.name || "").trim() || REGIONAL_LABEL_FALLBACK[id] || "";
+    const value = f.value == null ? "" : String(f.value).trim();
+    if (!label || !value) continue;
+    const twin = CUSTOM_ID_TO_PERSONAL_KEY[id];
+    if (twin && isPersonalDetailHidden(resume, twin)) continue;
+    if (twin && excludeTwins) continue;
+    entries.push({ label, value });
   }
   return entries;
 }
 
-// True iff at least one of the eight Personal Details fields is populated.
-// Used by templates to skip rendering the section header + body when the
-// user hasn't filled any of them — same rule as how Projects / Volunteer
-// already work.
+// Ordered personal-details entries for template headers (Gulf convention:
+// nationality + visa status lead), followed by any imported custom fields.
+// Returns [{ label, value }] for ONLY the filled, non-hidden fields —
+// empty/whitespace values are skipped, never "N/A". De-duped by label so a
+// custom field that repeats a flat one prints once.
+// Twin: buildPersonalDetailsEntries in src/serverLib/pdfCommon.js (CommonJS)
+// — keep the field order, hide rule and trimming identical when changing either.
+export function buildPersonalDetailsEntries(resume) {
+  if (!resume || typeof resume !== "object") return [];
+  const entries = [];
+  const seen = new Set();
+  const push = (rawLabel, rawValue) => {
+    const label = String(rawLabel == null ? "" : rawLabel).trim();
+    const value = String(rawValue == null ? "" : rawValue).trim();
+    if (!label || !value) return;
+    const key = label.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({ label, value });
+  };
+  for (const [label, key] of PERSONAL_DETAIL_DEFS) {
+    if (isPersonalDetailHidden(resume, key)) continue;
+    push(label, resume[key]);
+  }
+  for (const e of buildCustomFieldEntries(resume)) push(e.label, e.value);
+  return entries;
+}
+
+// True iff anything would actually print in the Personal Details block.
+// Used by templates to skip rendering the section header + body — same rule
+// as how Projects / Volunteer already work. Delegates so it can never drift
+// from what buildPersonalDetailsEntries returns (hidden fields don't count;
+// an imported custom field on its own does).
 export function hasAnyPersonalDetail(cv) {
-  if (!cv || typeof cv !== "object") return false;
-  const keys = [
-    "dob", "gender", "nationality", "maritalStatus",
-    "visaStatus", "drivingLicense", "availability", "willingToRelocate",
-  ];
-  return keys.some((k) => String(cv[k] || "").trim().length > 0);
+  return buildPersonalDetailsEntries(cv).length > 0;
 }
 
 const RESUME_STRING_FIELDS = [
@@ -331,6 +421,9 @@ export function normalizeResumeForBuilder(cv) {
       : [],
     certifications: normalizeCertificationsArray(cv.certifications),
     customFields: normalizeCustomFieldsArray(cv.customFields),
+    hiddenPersonalDetails: Array.isArray(cv.hiddenPersonalDetails)
+      ? cv.hiddenPersonalDetails.map((k) => String(k || "").trim()).filter(Boolean)
+      : [],
     builderExtraSectionIds: Array.isArray(cv.builderExtraSectionIds) ? cv.builderExtraSectionIds : [],
   };
   for (const k of RESUME_STRING_FIELDS) merged[k] = toStrField(merged[k]);

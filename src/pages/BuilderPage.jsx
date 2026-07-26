@@ -74,6 +74,7 @@ import {
   builderAtsScore,
   isCvDataEmptyForTemplateApply,
   isGulfLocation,
+  isPersonalDetailHidden,
 } from "../cvShared";
 import BuilderCvImport from "../components/builder/BuilderCvImport";
 import { getRoleSuggestions } from "../utils/detectRole";
@@ -584,7 +585,95 @@ const RELOCATE_OPTIONS = ["Yes", "No"];
 
 const CORRIDOR_LABEL_STYLE = { fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 5 };
 
-function CorridorSelectField({ label, value, options, placeholder, onChange }) {
+/* Label row that can carry a trailing control (the Show-on-CV switch). Keeps
+   the switch tied to its field instead of floating as a separate setting. */
+function CorridorFieldLabel({ children, trailing }) {
+  if (!trailing) return <label style={CORRIDOR_LABEL_STYLE}>{children}</label>;
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 5, minWidth: 0 }}>
+      <label style={{ ...CORRIDOR_LABEL_STYLE, marginBottom: 0, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {children}
+      </label>
+      {trailing}
+    </div>
+  );
+}
+
+/* "Show on CV" — Gulf CVs conventionally carry visa status, nationality and
+   date of birth. On an India- or Western-targeted CV those same three invite
+   age and origin screening, so the user can keep the value and suppress the
+   print. Default ON: `hiddenPersonalDetails` starts empty, so Gulf behaviour
+   and every existing draft are unchanged. The switch controls PRINTING ONLY —
+   the value stays in the draft, and comes back the moment it is switched on. */
+function ShowOnCvToggle({ fieldKey, label, resume, setResume }) {
+  const hidden = isPersonalDetailHidden(resume, fieldKey);
+  const toggle = () =>
+    setResume((r) => {
+      const cur = Array.isArray(r.hiddenPersonalDetails) ? r.hiddenPersonalDetails : [];
+      return {
+        ...r,
+        hiddenPersonalDetails: cur.includes(fieldKey) ? cur.filter((k) => k !== fieldKey) : [...cur, fieldKey],
+      };
+    });
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={!hidden}
+      aria-label={`Show ${label} on CV`}
+      title={hidden ? `${label} is saved but not printed on your CV` : `${label} prints on your CV`}
+      onClick={toggle}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        flexShrink: 0,
+        background: "none",
+        border: "none",
+        padding: "2px 0",
+        cursor: "pointer",
+        font: "inherit",
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: "0.01em",
+        color: hidden ? "var(--text-muted)" : "var(--text-secondary)",
+        transition: `color 150ms ${EASE}`,
+      }}
+    >
+      <span>{hidden ? "Hidden" : "On CV"}</span>
+      <span
+        aria-hidden
+        style={{
+          position: "relative",
+          width: 26,
+          height: 15,
+          borderRadius: 999,
+          flexShrink: 0,
+          background: hidden ? "var(--builder-fill)" : "var(--accent)",
+          border: `1px solid ${hidden ? "var(--border)" : "var(--accent)"}`,
+          boxSizing: "border-box",
+          transition: `background-color 180ms ${EASE}, border-color 180ms ${EASE}`,
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: 1,
+            left: 1,
+            width: 11,
+            height: 11,
+            borderRadius: "50%",
+            background: hidden ? "var(--text-muted)" : "#FFFFFF",
+            transform: hidden ? "translateX(0)" : "translateX(11px)",
+            transition: `transform 180ms ${EASE}, background-color 180ms ${EASE}`,
+          }}
+        />
+      </span>
+    </button>
+  );
+}
+
+function CorridorSelectField({ label, value, options, placeholder, onChange, trailing, dimmed }) {
   const [open, setOpen] = useState(false);
   const [customDraft, setCustomDraft] = useState("");
 
@@ -607,13 +696,14 @@ function CorridorSelectField({ label, value, options, placeholder, onChange }) {
 
   return (
     <div>
-      <label style={CORRIDOR_LABEL_STYLE}>{label}</label>
+      <CorridorFieldLabel trailing={trailing}>{label}</CorridorFieldLabel>
       <button
         type="button"
         className="cvp-corridor-trigger"
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen(true)}
+        style={dimmed ? { opacity: 0.55 } : undefined}
       >
         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: value ? "var(--text-primary)" : "var(--text-muted)" }}>
           {value || placeholder}
@@ -764,6 +854,9 @@ function PersonalDetailsBuilderSection({ resume, setResume }) {
       <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
         These are the answers a Gulf recruiter filters on before they open your CV. Most people leave them blank, so filling them is how you get called first.
       </p>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "-6px 0 0", lineHeight: 1.5 }}>
+        Applying outside the Gulf? Switch a field off and it stays saved here but stops printing on your CV.
+      </p>
 
       <CorridorSelectField
         label="Visa status"
@@ -771,18 +864,36 @@ function PersonalDetailsBuilderSection({ resume, setResume }) {
         options={VISA_STATUS_OPTIONS}
         placeholder="e.g. Resident Visa"
         onChange={(v) => setField("visaStatus", v)}
+        dimmed={isPersonalDetailHidden(resume, "visaStatus")}
+        trailing={<ShowOnCvToggle fieldKey="visaStatus" label="Visa status" resume={resume} setResume={setResume} />}
       />
 
       <AvailabilityField value={resume.availability || ""} onChange={(v) => setField("availability", v)} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
         <div>
-          <label style={CORRIDOR_LABEL_STYLE}>Nationality</label>
-          <input className="cvp-input" style={{ padding: "10px 13px" }} placeholder="e.g. Indian" value={resume.nationality || ""} onChange={(e) => setField("nationality", e.target.value)} />
+          <CorridorFieldLabel trailing={<ShowOnCvToggle fieldKey="nationality" label="Nationality" resume={resume} setResume={setResume} />}>
+            Nationality
+          </CorridorFieldLabel>
+          <input
+            className="cvp-input"
+            style={{ padding: "10px 13px", opacity: isPersonalDetailHidden(resume, "nationality") ? 0.55 : 1 }}
+            placeholder="e.g. Indian"
+            value={resume.nationality || ""}
+            onChange={(e) => setField("nationality", e.target.value)}
+          />
         </div>
         <div>
-          <label style={CORRIDOR_LABEL_STYLE}>Date of birth</label>
-          <input className="cvp-input" style={{ padding: "10px 13px" }} placeholder="DD MMM YYYY" value={resume.dob || ""} onChange={(e) => setField("dob", e.target.value)} />
+          <CorridorFieldLabel trailing={<ShowOnCvToggle fieldKey="dob" label="Date of birth" resume={resume} setResume={setResume} />}>
+            Date of birth
+          </CorridorFieldLabel>
+          <input
+            className="cvp-input"
+            style={{ padding: "10px 13px", opacity: isPersonalDetailHidden(resume, "dob") ? 0.55 : 1 }}
+            placeholder="DD MMM YYYY"
+            value={resume.dob || ""}
+            onChange={(e) => setField("dob", e.target.value)}
+          />
         </div>
         <CorridorSelectField
           label="Gender"

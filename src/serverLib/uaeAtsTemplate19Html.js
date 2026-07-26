@@ -11,7 +11,7 @@
 // section 13. CSS variable design tokens per section 17.
 // =============================================================
 
-const { escapeHtml, splitExperiencePointsForPreview, buildPersonalDetailsEntries, technicalSkillsGroups } = require("./pdfCommon");
+const { escapeHtml, splitExperiencePointsForPreview, buildPersonalDetailsEntries, buildCustomFieldEntries, technicalSkillsGroups } = require("./pdfCommon");
 
 const SECTION_TITLES = {
   summary: "Summary",
@@ -27,12 +27,8 @@ const SECTION_TITLES = {
   references: "References",
 };
 
-const REGIONAL_LABEL_FALLBACK = {
-  visa_status: "Visa Status",
-  notice_period: "Notice Period",
-  driving_license: "Driving License",
-  nafis_registered: "Nafis Registered",
-};
+// The id → label fallback for customFields entries missing .name now lives in
+// pdfCommon.js (REGIONAL_LABEL_FALLBACK) so every template resolves identically.
 
 function trimStr(v) {
   return typeof v === "string" ? v.trim() : "";
@@ -60,12 +56,11 @@ function buildStatusEntries(cv) {
     seen.add(key);
     entries.push({ name: n, value: v });
   };
-  if (Array.isArray(cv.customFields)) {
-    for (const f of cv.customFields) {
-      if (!f || typeof f !== "object") continue;
-      const id = trimStr(f.id);
-      push(trimStr(f.name) || REGIONAL_LABEL_FALLBACK[id] || "", f.value);
-    }
+  /* Custom entries lead. Routed through the shared builder so a field the
+     user switched off in Personal Details can't come back in through its
+     imported customFields twin. */
+  for (const e of buildCustomFieldEntries(cv)) {
+    push(e.label, e.value);
   }
   for (const e of buildPersonalDetailsEntries(cv)) {
     push(e.label, e.value);

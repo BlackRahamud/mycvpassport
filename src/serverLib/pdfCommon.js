@@ -160,29 +160,108 @@ function normalizeCvForPdf(cv) {
   return { ...cv, education, languages };
 }
 
-// Ordered personal-details entries for template headers (Gulf convention:
-// nationality + visa status lead). Returns [{ label, value }] for ONLY the
-// filled fields — empty/whitespace values are skipped, never "N/A".
+// The eight printable Personal Details fields, in Gulf convention order
+// (nationality + visa status lead).
+// Twin: PERSONAL_DETAIL_DEFS in src/cvShared.js (ESM).
+const PERSONAL_DETAIL_DEFS = [
+  ["Nationality", "nationality"],
+  ["Visa Status", "visaStatus"],
+  ["Date of Birth", "dob"],
+  ["Marital Status", "maritalStatus"],
+  ["Driving License", "drivingLicense"],
+  ["Gender", "gender"],
+  ["Availability", "availability"],
+  ["Willing to Relocate", "willingToRelocate"],
+];
+
+// customFields[] ids that are just an imported spelling of a flat field. When
+// the flat field is hidden its imported twin must hide with it.
+// Twin: CUSTOM_ID_TO_PERSONAL_KEY in src/cvShared.js.
+const CUSTOM_ID_TO_PERSONAL_KEY = {
+  nationality: "nationality",
+  visa_status: "visaStatus",
+  date_of_birth: "dob",
+  dob: "dob",
+  marital_status: "maritalStatus",
+  driving_license: "drivingLicense",
+  gender: "gender",
+  availability: "availability",
+  willing_to_relocate: "willingToRelocate",
+};
+
+// Labels for imported regional fields that arrive without a .name.
+// Twin: REGIONAL_LABEL_FALLBACK in src/cvShared.js.
+const REGIONAL_LABEL_FALLBACK = {
+  visa_status: "Visa Status",
+  notice_period: "Notice Period",
+  driving_license: "Driving License",
+  date_of_birth: "Date of Birth",
+  marital_status: "Marital Status",
+  willing_to_relocate: "Willing to Relocate",
+  nationality: "Nationality",
+  gender: "Gender",
+  availability: "Availability",
+  nafis_registered: "Nafis Registered",
+};
+
+// Is this personal-detail key suppressed from print? Data is untouched either
+// way — the toggle controls rendering only.
+// Twin: isPersonalDetailHidden in src/cvShared.js.
+function isPersonalDetailHidden(resume, key) {
+  if (!resume || typeof resume !== "object") return false;
+  const hidden = resume.hiddenPersonalDetails;
+  return Array.isArray(hidden) && hidden.includes(key);
+}
+
+/* Imported customFields[] as printable { label, value } entries, so no custom
+   field the user provided is silently dropped from the CV.
+   Pass { excludeRegionalTwins: true } from a template that already renders the
+   regional fields itself (T10, T11) so an imported "nationality" doesn't print
+   a second time next to the flat one.
+   Twin: buildCustomFieldEntries in src/cvShared.js. */
+function buildCustomFieldEntries(resume, opts) {
+  if (!resume || typeof resume !== "object") return [];
+  if (!Array.isArray(resume.customFields)) return [];
+  const excludeTwins = Boolean(opts && opts.excludeRegionalTwins);
+  const entries = [];
+  for (const f of resume.customFields) {
+    if (!f || typeof f !== "object") continue;
+    const id = String(f.id || "").trim();
+    const label = String(f.name || "").trim() || REGIONAL_LABEL_FALLBACK[id] || "";
+    const value = f.value == null ? "" : String(f.value).trim();
+    if (!label || !value) continue;
+    const twin = CUSTOM_ID_TO_PERSONAL_KEY[id];
+    if (twin && isPersonalDetailHidden(resume, twin)) continue;
+    if (twin && excludeTwins) continue;
+    entries.push({ label, value });
+  }
+  return entries;
+}
+
+// Ordered personal-details entries for template headers, followed by any
+// imported custom fields. Returns [{ label, value }] for ONLY the filled,
+// non-hidden fields — empty/whitespace values are skipped, never "N/A".
+// De-duped by label so a custom field repeating a flat one prints once.
 // Twin: buildPersonalDetailsEntries in src/cvShared.js (ESM) — keep the
-// field order and trimming identical when changing either.
+// field order, hide rule and trimming identical when changing either.
 function buildPersonalDetailsEntries(resume) {
   if (!resume || typeof resume !== "object") return [];
-  const defs = [
-    ["Nationality", "nationality"],
-    ["Visa Status", "visaStatus"],
-    ["Date of Birth", "dob"],
-    ["Marital Status", "maritalStatus"],
-    ["Driving License", "drivingLicense"],
-    ["Gender", "gender"],
-    ["Availability", "availability"],
-    ["Willing to Relocate", "willingToRelocate"],
-  ];
   const entries = [];
-  for (const [label, key] of defs) {
-    const raw = resume[key];
-    const value = raw == null ? "" : String(raw).trim();
-    if (value) entries.push({ label, value });
+  const seen = new Set();
+  const push = (rawLabel, rawValue) => {
+    const label = String(rawLabel == null ? "" : rawLabel).trim();
+    const value = String(rawValue == null ? "" : rawValue).trim();
+    if (!label || !value) return;
+    const key = label.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({ label, value });
+  };
+  for (const [label, key] of PERSONAL_DETAIL_DEFS) {
+    if (isPersonalDetailHidden(resume, key)) continue;
+    push(label, resume[key]);
   }
+  for (const e of buildCustomFieldEntries(resume)) push(e.label, e.value);
   return entries;
 }
 
@@ -194,4 +273,8 @@ module.exports = {
   technicalSkillsGroups,
   normalizeCvForPdf,
   buildPersonalDetailsEntries,
+  buildCustomFieldEntries,
+  isPersonalDetailHidden,
+  PERSONAL_DETAIL_DEFS,
+  REGIONAL_LABEL_FALLBACK,
 };

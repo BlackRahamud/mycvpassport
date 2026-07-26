@@ -21,7 +21,7 @@
 // page-break-after: avoid.
 // =============================================================
 
-const { escapeHtml, splitExperiencePointsForPreview } = require("./pdfCommon");
+const { escapeHtml, splitExperiencePointsForPreview, isPersonalDetailHidden } = require("./pdfCommon");
 
 // Read a regional field from customFields[] first (Session 2's
 // escape hatch), falling back to a flat field on the cv root for
@@ -80,15 +80,20 @@ function buildContactPipes(cv) {
 }
 
 function buildStatusItems(cv) {
-  const nationality = readCustomField(cv, ["nationality"], "nationality");
-  const visa = readCustomField(cv, ["visa_status"], "visaStatus");
+  /* "Show on CV" toggles: a hidden field is suppressed from BOTH its flat
+     value and its imported customFields twin, or the imported copy would keep
+     printing after the user switched it off. Data is untouched.
+     TWIN: keep in sync with Header() in src/Template10ATSInternational.js. */
+  const hidden = (key) => isPersonalDetailHidden(cv, key);
+  const nationality = hidden("nationality") ? "" : readCustomField(cv, ["nationality"], "nationality");
+  const visa = hidden("visaStatus") ? "" : readCustomField(cv, ["visa_status"], "visaStatus");
   const notice = readCustomField(cv, ["notice_period"], null);
-  const dob = readCustomField(cv, ["date_of_birth", "dob"], "dob");
-  const marital = readCustomField(cv, ["marital_status"], "maritalStatus");
-  const license = readCustomField(cv, ["driving_license"], "drivingLicense");
-  const gender = readCustomField(cv, ["gender"], "gender");
-  const availability = readCustomField(cv, ["availability"], "availability");
-  const relocate = readCustomField(cv, ["willing_to_relocate"], "willingToRelocate");
+  const dob = hidden("dob") ? "" : readCustomField(cv, ["date_of_birth", "dob"], "dob");
+  const marital = hidden("maritalStatus") ? "" : readCustomField(cv, ["marital_status"], "maritalStatus");
+  const license = hidden("drivingLicense") ? "" : readCustomField(cv, ["driving_license"], "drivingLicense");
+  const gender = hidden("gender") ? "" : readCustomField(cv, ["gender"], "gender");
+  const availability = hidden("availability") ? "" : readCustomField(cv, ["availability"], "availability");
+  const relocate = hidden("willingToRelocate") ? "" : readCustomField(cv, ["willing_to_relocate"], "willingToRelocate");
   const items = [];
   if (nationality) items.push({ label: "Nationality", value: nationality });
   if (visa) items.push({ label: "Visa", value: visa });

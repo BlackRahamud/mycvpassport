@@ -85,8 +85,10 @@ const browser = await chromium.launch();
 {
   const require2 = createRequire(import.meta.url);
   for (const [mod, fn, tag] of [
-    ["./src/serverLib/bannerTemplate1Html.js", null, "t1"],
-    ["./src/serverLib/uaeAtsTemplate19Html.js", null, "t19"],
+    /* createRequire(import.meta.url) resolves relative to scripts/, not the
+       repo root — "./src/..." here threw MODULE_NOT_FOUND and killed the run. */
+    ["../src/serverLib/bannerTemplate1Html.js", null, "t1"],
+    ["../src/serverLib/uaeAtsTemplate19Html.js", null, "t19"],
   ]) {
     const m = require2(mod);
     const build = fn ? m[fn] : (m.default || Object.values(m).find((v) => typeof v === "function"));
