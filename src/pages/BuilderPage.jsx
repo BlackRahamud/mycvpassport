@@ -740,14 +740,24 @@ function AvailabilityField({ value, onChange }) {
 
 function PersonalDetailsBuilderSection({ resume, setResume }) {
   const setField = (key, value) => setResume((r) => ({ ...r, [key]: value }));
-  /* TODO(product): salary expectation and passport have NO data source —
-     neither EMPTY_RESUME nor the transform extractor carries them, so no
-     upload can ever fill them. They are deliberately inert local state
-     (editable, persisted nowhere) until product decides whether they feed
-     the readiness score. Do not wire them to resume.* without also
-     updating the cv_snapshot contract and the extractor schema. */
-  const [salaryDraft, setSalaryDraft] = useState("");
-  const [passportDraft, setPassportDraft] = useState("");
+  /* TODO(product): salary expectation and passport are DEFERRED, not dropped.
+     They have NO data source — neither EMPTY_RESUME nor the transform
+     extractor carries them, so no upload can ever fill them, and they are
+     printed by no template (buildPersonalDetailsEntries in cvShared.js /
+     serverLib/pdfCommon.js covers eight keys, neither of these). Their
+     inputs used to render here as inert local state, which read to the user
+     as "type it and it vanishes", so the inputs were pulled (26 Jul 2026)
+     while the slots stay reserved.
+     When they return they are a HIDDEN job-match profile — recruiter-side
+     metadata, never printed on the CV:
+       salaryExpectation  "Add expected monthly pay"   (readiness.js already
+                          scores a `salary` row — wire to that)
+       passport           "Add passport status"
+     Bringing them back means adding the keys to the cv_snapshot contract and
+     the extractor schema first, then rendering them OUTSIDE this component —
+     Personal Details is CV-printed content only. Do not re-add them here, and
+     do not add them to PERSONAL_DETAIL_FIELDS (that list is the printed
+     eight and drives the "n of 8 filled" counter). */
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -800,39 +810,8 @@ function PersonalDetailsBuilderSection({ resume, setResume }) {
           onChange={(v) => setField("willingToRelocate", v)}
         />
       </div>
-
-      <div style={{ marginTop: 4, paddingTop: 14, borderTop: "1px dashed var(--border)" }}>
-        <p style={{ margin: "0 0 4px", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--accent-text)" }}>Only you can add these</p>
-        <p style={{ margin: "0 0 11px", fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.45 }}>
-          No CV carries them, so they start empty. Adding them puts you ahead of everyone who left them off.
-        </p>
-        <div style={{ display: "grid", gap: 10 }}>
-          <div>
-            <label style={CORRIDOR_LABEL_STYLE}>Salary expectation</label>
-            {/* TODO(product): inert — see the note at the top of this component. */}
-            <div className="cvp-corridor-invite">
-              <input
-                placeholder="Add expected monthly pay"
-                value={salaryDraft}
-                onChange={(e) => setSalaryDraft(e.target.value)}
-                aria-label="Salary expectation"
-              />
-            </div>
-          </div>
-          <div>
-            <label style={CORRIDOR_LABEL_STYLE}>Passport</label>
-            {/* TODO(product): inert — see the note at the top of this component. */}
-            <div className="cvp-corridor-invite">
-              <input
-                placeholder="Add passport status"
-                value={passportDraft}
-                onChange={(e) => setPassportDraft(e.target.value)}
-                aria-label="Passport"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* The "Only you can add these" block (salary expectation + passport)
+          lived here. Removed 26 Jul 2026 — see the TODO at the top. */}
     </div>
   );
 }

@@ -3,7 +3,7 @@
    the checklist from the refinement brief: theme default/persist, FAB
    preview single home, experience + education editors, skills chip, visa
    select + free-text fallback, availability writes to `availability`,
-   inert salary/passport, undo/redo/save/export, template switch, tabs,
+   salary/passport absent + counter denominator, undo/redo/save/export, template switch, tabs,
    360 overflow. Screenshots land in the outDir argument. */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, mkdirSync } from "node:fs";
@@ -188,17 +188,27 @@ const builderThemeAttr = (page) =>
   );
   await page.screenshot({ path: join(OUT, "05-availability-393.png") });
 
-  /* salary + passport: editable, wired to NOTHING */
-  const salary = page.locator('.cvp-builder-mobile-form input[aria-label="Salary expectation"]').first();
-  await salary.scrollIntoViewIfNeeded();
-  await salary.fill("AED 9,500 per month");
-  const passport = page.locator('.cvp-builder-mobile-form input[aria-label="Passport"]').first();
-  await passport.fill("Valid to 2031, ECNR");
-  await page.waitForTimeout(1100);
-  const rawDraft = await page.evaluate(() => localStorage.getItem("cvp_cv_draft:new:default") || "");
-  const inert = !rawDraft.includes("AED 9,500") && !rawDraft.includes("ECNR");
-  const editable = (await salary.inputValue()) === "AED 9,500 per month";
-  log("salary/passport: editable and persisted NOWHERE (inert)", inert && editable, `draftLeak=${!inert}`);
+  /* salary + passport: REMOVED from the builder (26 Jul 2026). They saved
+     nowhere, so the inputs read as "type it and it vanishes". The slots stay
+     reserved for a hidden job-match profile — but nothing may render here. */
+  const salaryCount = await page.locator('.cvp-builder-mobile-form input[aria-label="Salary expectation"]').count();
+  const passportCount = await page.locator('.cvp-builder-mobile-form input[aria-label="Passport"]').count();
+  const inviteCount = await page.locator(".cvp-builder-mobile-form .cvp-corridor-invite").count();
+  log(
+    "salary/passport: inputs are GONE from Personal Details",
+    salaryCount === 0 && passportCount === 0 && inviteCount === 0,
+    `salary=${salaryCount}, passport=${passportCount}, invite=${inviteCount}`,
+  );
+
+  /* the completion counter denominator must match the fields that render */
+  const pdText = (await page.locator('.cvp-builder-mobile-form [data-cvp-accordion="personalDetails"]').first().innerText()) || "";
+  const pdInputs = await page.locator('.cvp-builder-mobile-form [data-cvp-accordion="personalDetails"] input, .cvp-builder-mobile-form [data-cvp-accordion="personalDetails"] .cvp-corridor-trigger').count();
+  const counterOk = /(\bEmpty\b|\b\d+ of 8 filled\b)/.test(pdText);
+  log(
+    "personal details: counter denominator is 8 and reaches 100%",
+    counterOk,
+    `summary="${(pdText.match(/\d+ of \d+ filled|Empty/) || ["none"])[0]}", renderedControls=${pdInputs}`,
+  );
   await page.screenshot({ path: join(OUT, "06-only-you-fields-393.png") });
 
   /* experience row → editor → save */
@@ -389,6 +399,17 @@ const builderThemeAttr = (page) =>
   log("desktop: two-panel layout intact", twoPanel, "");
   await page.locator('[data-cvp-accordion="personalDetails"]').first().locator("button").first().click();
   await page.waitForTimeout(700);
+  /* salary + passport must be absent on desktop too (same component) */
+  const pdDesk = page.locator('[data-cvp-accordion="personalDetails"]').first();
+  const deskSalary = await pdDesk.locator('input[aria-label="Salary expectation"]').count();
+  const deskPassport = await pdDesk.locator('input[aria-label="Passport"]').count();
+  const deskInvite = await pdDesk.locator(".cvp-corridor-invite").count();
+  const deskText = (await pdDesk.innerText()) || "";
+  log(
+    "desktop: salary/passport gone, counter denominator is 8",
+    deskSalary === 0 && deskPassport === 0 && deskInvite === 0 && /(\bEmpty\b|\b\d+ of 8 filled\b)/.test(deskText),
+    `salary=${deskSalary}, passport=${deskPassport}, invite=${deskInvite}, summary="${(deskText.match(/\d+ of \d+ filled|Empty/) || ["none"])[0]}"`,
+  );
   await page.screenshot({ path: join(OUT, "12-desktop-day.png") });
   await page.locator(".cvp-builder-theme-toggle").first().click();
   await page.waitForTimeout(600);

@@ -2752,6 +2752,9 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
 }
 
 /* Only-you fields (salary, passport) — invitation, never a correction.
+   CURRENTLY UNUSED: the two inputs were pulled from Personal Details on
+   26 Jul 2026 (they saved nowhere). Kept because the fields return as the
+   hidden job-match profile — see the TODO in PersonalDetailsBuilderSection.
    Solid amber hairline at rest; a clean solid amber ring on focus. The old
    dashed border read as broken, and the bare input was picking up the global
    input:focus amber box-shadow, which drew a second stray ring INSIDE the
