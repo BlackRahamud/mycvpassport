@@ -94,6 +94,9 @@ export default function MobileNav({
   }, [location.pathname]);
 
   // Body scroll-lock with scrollbar compensation — no layout shift on open.
+  // data-nav-open also hides the page header (index.css §3b): the drawer is
+  // 400px on tablets, and the header's logo peeking in the gutter beside the
+  // drawer's own logo read as a second, half-cut CVPassport header.
   useEffect(() => {
     if (!isOpen) return undefined;
     const scrollbar = window.innerWidth - document.documentElement.clientWidth;
@@ -101,9 +104,11 @@ export default function MobileNav({
     const prevPad = document.body.style.paddingRight;
     document.body.style.overflow = 'hidden';
     if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+    document.body.dataset.navOpen = 'true';
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPad;
+      delete document.body.dataset.navOpen;
     };
   }, [isOpen]);
 
@@ -179,9 +184,11 @@ export default function MobileNav({
               background: var(--nav-scrim);
               z-index: var(--nav-z-scrim);
             }
+            /* Width lives in index.css (§3, UI fix pack) — an inline <style>
+               in the body beats index.css on a specificity tie, so the
+               full-bleed phone override could never win from here. */
             .cvp-nav-drawer {
               position: fixed; top: 0; right: 0; bottom: 0;
-              width: min(86vw, 400px);
               background: var(--nav-surface);
               border-left: 1px solid var(--nav-border-hairline);
               z-index: var(--nav-z-drawer);
@@ -193,13 +200,8 @@ export default function MobileNav({
               box-shadow: -24px 0 60px rgba(0, 0, 0, 0.5);
               will-change: transform;
             }
-            .cvp-nav-drawer-header {
-              flex: 0 0 auto;
-              display: flex; align-items: center; justify-content: space-between;
-              gap: 12px;
-              padding: max(14px, env(safe-area-inset-top)) 16px 12px;
-              border-bottom: 1px solid var(--nav-border-hairline);
-            }
+            /* .cvp-nav-drawer-header lives in index.css (§3c) — sticky, opaque,
+               the ONE header row: logo · theme · close. */
             .cvp-nav-drawer-brand {
               display: inline-flex; align-items: center; gap: 8px;
               color: var(--nav-text); text-decoration: none;

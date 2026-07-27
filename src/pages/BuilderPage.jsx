@@ -35,6 +35,8 @@ import ATSChecker from "../ATSChecker";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import AIRewriteModal from "../components/AIRewriteModal";
+import CvpSelect from "../components/ui/CvpSelect";
+import { NATIONALITY_OPTIONS } from "../lib/nationalities";
 import AIWorkingGlow from "../components/AIWorkingGlow";
 import useAiImprove from "../hooks/useAiImprove";
 import { hasFeatureAccess } from "../utils/paywall";
@@ -581,7 +583,13 @@ const VISA_STATUS_OPTIONS = [
 ];
 const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
 const MARITAL_STATUS_OPTIONS = ["Single", "Married", "Prefer not to say"];
-const RELOCATE_OPTIONS = ["Yes", "No"];
+const RELOCATE_OPTIONS = ["Yes", "No", "Within the GCC only"];
+const DRIVING_LICENSE_OPTIONS = [
+  "UAE driving license",
+  "GCC driving license",
+  "Home-country license only",
+  "No license",
+];
 
 const CORRIDOR_LABEL_STYLE = { fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 5 };
 
@@ -673,101 +681,12 @@ function ShowOnCvToggle({ fieldKey, label, resume, setResume }) {
   );
 }
 
-function CorridorSelectField({ label, value, options, placeholder, onChange, trailing, dimmed }) {
-  const [open, setOpen] = useState(false);
-  const [customDraft, setCustomDraft] = useState("");
-
-  useEffect(() => {
-    if (!open) return undefined;
-    setCustomDraft("");
-    const onKey = (e) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  const commitCustom = () => {
-    const v = customDraft.trim();
-    if (!v) return;
-    onChange(v);
-    setOpen(false);
-  };
-
-  return (
-    <div>
-      <CorridorFieldLabel trailing={trailing}>{label}</CorridorFieldLabel>
-      <button
-        type="button"
-        className="cvp-corridor-trigger"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        style={dimmed ? { opacity: 0.55 } : undefined}
-      >
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: value ? "var(--text-primary)" : "var(--text-muted)" }}>
-          {value || placeholder}
-        </span>
-        <ChevronDown size={15} strokeWidth={2} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />
-      </button>
-      {open ? (
-        <div className="cvp-corridor-overlay" role="presentation" onClick={() => setOpen(false)}>
-          <div className="cvp-corridor-sheet" role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 6px" }} aria-hidden>
-              <span style={{ width: 38, height: 4, borderRadius: 999, background: "var(--border-strong)" }} />
-            </div>
-            <p style={{ margin: "2px 6px 10px", fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{label}</p>
-            <div style={{ overflowY: "auto", minHeight: 0 }} role="listbox" aria-label={`${label} options`}>
-              {options.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  role="option"
-                  aria-selected={opt === value}
-                  className="cvp-corridor-option"
-                  onClick={() => {
-                    onChange(opt);
-                    setOpen(false);
-                  }}
-                >
-                  <span style={{ flex: 1, minWidth: 0 }}>{opt}</span>
-                  {opt === value ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--accent)", flexShrink: 0 }} aria-hidden><polyline points="20 6 9 17 4 12" /></svg>
-                  ) : null}
-                </button>
-              ))}
-              <div style={{ marginTop: 8, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-                <label style={{ ...CORRIDOR_LABEL_STYLE, margin: "0 6px 6px" }}>Not listed? Type it exactly as it reads</label>
-                <div style={{ display: "flex", gap: 8, padding: "0 4px 4px" }}>
-                  <input
-                    className="cvp-input"
-                    style={{ flex: 1, minWidth: 0, padding: "10px 13px" }}
-                    placeholder={placeholder}
-                    value={customDraft}
-                    onChange={(e) => setCustomDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        commitCustom();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={commitCustom}
-                    style={{ flexShrink: 0, padding: "0 18px", borderRadius: 10, background: "var(--accent)", border: "none", color: "var(--accent-contrast)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    Use this
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+/* CorridorSelectField was a bespoke bottom-sheet listbox that had no
+   desktop treatment (the sheet fired on every viewport) and pushed its
+   "type your own" row inside the scroll region, where a long list could
+   bury it. Both fields are now the shared glass control — see
+   src/components/ui/CvpSelect.jsx and the .cvp-select block in
+   src/index.css (Claude Design "UI fix pack", Jul 2026). */
 
 /* Availability — reads and writes the existing `availability` key (the
    extractor and the applyToJob shim read it by name; notice period lives
@@ -858,12 +777,15 @@ function PersonalDetailsBuilderSection({ resume, setResume }) {
         Applying outside the Gulf? Switch a field off and it stays saved here but stops printing on your CV.
       </p>
 
-      <CorridorSelectField
+      <CvpSelect
         label="Visa status"
         value={resume.visaStatus || ""}
         options={VISA_STATUS_OPTIONS}
         placeholder="e.g. Resident Visa"
         onChange={(v) => setField("visaStatus", v)}
+        searchable
+        searchPlaceholder="Search visa types"
+        customPlaceholder="Type it exactly as it reads"
         dimmed={isPersonalDetailHidden(resume, "visaStatus")}
         trailing={<ShowOnCvToggle fieldKey="visaStatus" label="Visa status" resume={resume} setResume={setResume} />}
       />
@@ -871,18 +793,17 @@ function PersonalDetailsBuilderSection({ resume, setResume }) {
       <AvailabilityField value={resume.availability || ""} onChange={(v) => setField("availability", v)} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-        <div>
-          <CorridorFieldLabel trailing={<ShowOnCvToggle fieldKey="nationality" label="Nationality" resume={resume} setResume={setResume} />}>
-            Nationality
-          </CorridorFieldLabel>
-          <input
-            className="cvp-input"
-            style={{ padding: "10px 13px", opacity: isPersonalDetailHidden(resume, "nationality") ? 0.55 : 1 }}
-            placeholder="e.g. Indian"
-            value={resume.nationality || ""}
-            onChange={(e) => setField("nationality", e.target.value)}
-          />
-        </div>
+        <CvpSelect
+          label="Nationality"
+          value={resume.nationality || ""}
+          options={NATIONALITY_OPTIONS}
+          placeholder="e.g. Indian"
+          onChange={(v) => setField("nationality", v)}
+          searchable
+          searchPlaceholder={`Search ${NATIONALITY_OPTIONS.length} nationalities`}
+          dimmed={isPersonalDetailHidden(resume, "nationality")}
+          trailing={<ShowOnCvToggle fieldKey="nationality" label="Nationality" resume={resume} setResume={setResume} />}
+        />
         <div>
           <CorridorFieldLabel trailing={<ShowOnCvToggle fieldKey="dob" label="Date of birth" resume={resume} setResume={setResume} />}>
             Date of birth
@@ -895,25 +816,30 @@ function PersonalDetailsBuilderSection({ resume, setResume }) {
             onChange={(e) => setField("dob", e.target.value)}
           />
         </div>
-        <CorridorSelectField
+        <CvpSelect
           label="Gender"
           value={resume.gender || ""}
           options={GENDER_OPTIONS}
           placeholder="Male / Female / Prefer not to say"
           onChange={(v) => setField("gender", v)}
+          customPlaceholder="As you'd like it to read"
         />
-        <CorridorSelectField
+        <CvpSelect
           label="Marital status"
           value={resume.maritalStatus || ""}
           options={MARITAL_STATUS_OPTIONS}
           placeholder="Single / Married"
           onChange={(v) => setField("maritalStatus", v)}
         />
-        <div>
-          <label style={CORRIDOR_LABEL_STYLE}>Driving license</label>
-          <input className="cvp-input" style={{ padding: "10px 13px" }} placeholder="e.g. UAE Driving License" value={resume.drivingLicense || ""} onChange={(e) => setField("drivingLicense", e.target.value)} />
-        </div>
-        <CorridorSelectField
+        <CvpSelect
+          label="Driving license"
+          value={resume.drivingLicense || ""}
+          options={DRIVING_LICENSE_OPTIONS}
+          placeholder="e.g. UAE Driving License"
+          onChange={(v) => setField("drivingLicense", v)}
+          customPlaceholder="Type it exactly as it reads"
+        />
+        <CvpSelect
           label="Willing to relocate"
           value={resume.willingToRelocate || ""}
           options={RELOCATE_OPTIONS}
