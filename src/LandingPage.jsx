@@ -17,7 +17,7 @@ import { getTheme, setTheme as setGlobalTheme } from './lib/theme';
 // Free Tools, Build CV and Explore sections are reachable from the
 // landing header.
 import HeroSection from './components/landing/HeroSection';
-import LiveAIDemo from './components/landing/LiveAIDemo';
+import ProductWalkthroughSection from './components/landing/ProductWalkthroughSection';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
 import FloatingActionButton from './components/landing/FloatingActionButton';
@@ -897,7 +897,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             May-2026 landing — section order:
               1. Header + simplified nav (above)
               2. Hero (animated phone + iPad billboard)
-              3. Live AI Demo (dedicated section, anchor #live-demo)
+              3. Product walkthrough film (dedicated section, anchor #live-demo)
               4. Upload & Transform — "Have an existing CV? Fix in 60s"
               5. Three steps. Five minutes. (Step 02 reverted to original)
               6. Templates (anchor #templates)
@@ -912,9 +912,12 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         {/* 2 — Hero with animated phone + iPad billboard */}
         <HeroSection user={user} />
 
-        {/* 3 — Live AI Demo. Anchor target for the "Live demo" nav link. */}
+        {/* 3 — Product walkthrough film. Anchor target for the "Live demo"
+                nav link (kept: the link and any existing deep links still
+                land on the demo moment). Replaced the coded LiveAIDemo
+                simulation on 27 Jul 2026. */}
         <span id="live-demo" aria-hidden="true" />
-        <LiveAIDemo />
+        <ProductWalkthroughSection />
 
         {/* 5 — Three steps. Five minutes. Reverted to original Step 02
                 (Step02Stage). No demo embedded. */}
