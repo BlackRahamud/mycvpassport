@@ -377,8 +377,14 @@ export default function App() {
               <Route path="/admin/prospects" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminProspectsPage /> : <Navigate to="/" replace />} />
               <Route
                 path="/dashboard"
+                /* authReady gate: on a cold load `user` is null until the
+                   Supabase session resolves. Without this, a hard refresh of
+                   /dashboard rendered <Navigate to="/"> and kicked a
+                   logged-in user home. null while resolving, redirect only
+                   once auth has definitively settled — same shape as every
+                   other private route (/scout, /cover-letter, /admin). */
                 element={
-                  user ? (
+                  !authReady ? null : user ? (
                     <DashboardPage
                       user={user}
                       isPro={isPro}
@@ -403,9 +409,11 @@ export default function App() {
                   )
                 }
               />
-              <Route path="/account" element={user ? <AccountPage /> : <Navigate to="/" replace />} />
-              <Route path="/account/invoices" element={user ? <InvoicesList /> : <Navigate to="/" replace />} />
-              <Route path="/account/invoices/:id" element={user ? <InvoiceDetail /> : <Navigate to="/" replace />} />
+              {/* Same authReady gate as /dashboard — these are reached from
+                  the account popover, so a refresh here had the same bounce. */}
+              <Route path="/account" element={!authReady ? null : user ? <AccountPage /> : <Navigate to="/" replace />} />
+              <Route path="/account/invoices" element={!authReady ? null : user ? <InvoicesList /> : <Navigate to="/" replace />} />
+              <Route path="/account/invoices/:id" element={!authReady ? null : user ? <InvoiceDetail /> : <Navigate to="/" replace />} />
               <Route
                 path="/builder"
                 element={

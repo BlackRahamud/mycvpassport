@@ -1,0 +1,446 @@
+/* =============================================================
+   Account surfaces — mobile sheet (1a), Account & plan sub-screen (1c),
+   desktop sidebar popover (1b).
+
+   Ported verbatim from the approved Claude Design file
+   "Account Sheet.dc.html" (MyCVPassport UI Redesign, Turn 1). Every
+   value here — sizes, radii, colours, easing, copy weights — comes from
+   that file. The palette is the design's warm-paper light set, which is
+   deliberately NOT the dashboard's dark island: these are their own
+   surfaces, exactly as drawn.
+
+   Scoped under .cvp-acct-* so nothing leaks into the dashboard around it.
+   ============================================================= */
+
+/* ── shared ─────────────────────────────────────────────────── */
+.cvp-acct-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(30, 26, 18, 0.34);
+  opacity: 0;
+  transition: opacity 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-scrim[data-open="true"] { opacity: 1; }
+
+/* ── 1a / 1c — mobile bottom sheet ──────────────────────────── */
+.cvp-acct-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 401;
+  background: #FFFDF8;
+  border-top: 1px solid #E4E4E0;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 26, 18, 0.12);
+  max-height: calc(100vh - 44px);
+  max-height: calc(100dvh - 44px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: #16161A;
+  box-sizing: border-box;
+  /* transform-only animation — never height/top */
+  transform: translateY(102%);
+  transition: transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cvp-acct-sheet[data-open="true"] { transform: translateY(0); }
+/* While a drag is in flight the inline transform wins; kill the tween so
+   the sheet tracks the finger 1:1. */
+.cvp-acct-sheet[data-dragging="true"] { transition: none; }
+
+.cvp-acct-grabber { display: flex; justify-content: center; padding: 10px 0 2px; }
+.cvp-acct-grabber i { display: block; width: 38px; height: 4px; border-radius: 2px; background: #DCDAD2; }
+
+.cvp-acct-pad { padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.cvp-acct-pad--account { padding: 8px 20px calc(28px + env(safe-area-inset-bottom, 0px)); }
+
+/* header row */
+.cvp-acct-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 18px;
+  border-bottom: 1px solid #EFEDE6;
+}
+.cvp-acct-avatar {
+  width: 44px; height: 44px;
+  border-radius: 999px;
+  background: #F0EADC;
+  color: #8A6A2F;
+  display: grid; place-items: center;
+  font-size: 15px; font-weight: 700;
+  flex-shrink: 0;
+}
+.cvp-acct-idcol { min-width: 0; flex: 1; }
+.cvp-acct-nameline { display: flex; align-items: center; gap: 8px; }
+.cvp-acct-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.cvp-acct-badge {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: #B45309;
+  background: rgba(217, 119, 6, 0.10);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.cvp-acct-email {
+  font-size: 12.5px; color: #6B6B74; margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cvp-acct-iconbtn {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  border: 1px solid #E4E4E0;
+  background: #F7F6F1;
+  color: #52525B;
+  display: grid; place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-iconbtn:hover { background: #EFEDE6; color: #16161A; }
+.cvp-acct-iconbtn:focus-visible { outline: 2px solid #B45309; outline-offset: 2px; }
+
+/* rows */
+.cvp-acct-rows { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; }
+.cvp-acct-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 14px;
+  color: #16161A;
+  min-height: 56px;
+  box-sizing: border-box;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-row:hover { background: #F5F2EA; }
+.cvp-acct-row:focus-visible { outline: 2px solid #B45309; outline-offset: -2px; }
+.cvp-acct-tile {
+  width: 36px; height: 36px;
+  border-radius: 11px;
+  background: #F5F2EA;
+  border: 1px solid #EAE5D8;
+  color: #52525B;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+/* Home carries the one amber tile in the list */
+.cvp-acct-tile--home { background: #F4EBD9; border-color: #EADFC6; color: #8A6A2F; }
+.cvp-acct-rowtext { flex: 1; min-width: 0; }
+.cvp-acct-rowtitle { display: block; font-size: 15px; font-weight: 600; }
+.cvp-acct-rowsub {
+  display: block; font-size: 12px; color: #6B6B74; margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cvp-acct-chev { flex-shrink: 0; color: #A9A69C; }
+
+/* sign out */
+.cvp-acct-signout-wrap { margin-top: 12px; padding-top: 12px; border-top: 1px solid #EFEDE6; }
+.cvp-acct-signout {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 12px;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  color: #8A8880;
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  min-height: 52px;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-signout:hover { background: #FBF0EF; color: #C0392B; }
+.cvp-acct-signout:focus-visible { outline: 2px solid #C0392B; outline-offset: -2px; }
+
+/* ── 1c — Account & plan sub-screen ─────────────────────────── */
+.cvp-acct-subhead {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0 16px;
+  border-bottom: 1px solid #EFEDE6;
+}
+.cvp-acct-subtitle { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.cvp-acct-body { padding-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.cvp-acct-plancard {
+  border: 1px solid #E9E3D6;
+  background: #FFFCF5;
+  border-radius: 16px;
+  padding: 18px;
+}
+.cvp-acct-eyebrow {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: #8A8880;
+}
+.cvp-acct-planname { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
+.cvp-acct-planmeta { font-size: 13px; color: #6B6B74; margin-top: 4px; line-height: 1.5; }
+.cvp-acct-checks { display: flex; flex-direction: column; gap: 9px; margin-top: 16px; }
+.cvp-acct-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: #3F3F46; }
+
+.cvp-acct-cta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.06);
+  color: #8A5A0B;
+  font-family: inherit; font-size: 14.5px; font-weight: 700;
+  min-height: 52px;
+  box-sizing: border-box;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-cta:hover { background: rgba(217, 119, 6, 0.11); }
+.cvp-acct-cta:focus-visible { outline: 2px solid #B45309; outline-offset: 2px; }
+.cvp-acct-ctanote { font-size: 12px; color: #8A8880; margin-top: 8px; padding: 0 4px; line-height: 1.5; }
+
+.cvp-acct-links {
+  border-top: 1px solid #EFEDE6;
+  padding-top: 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cvp-acct-link {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  padding: 14px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  color: #52525B;
+  min-height: 48px;
+  box-sizing: border-box;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-link:hover { background: #F5F2EA; }
+.cvp-acct-link:focus-visible { outline: 2px solid #B45309; outline-offset: -2px; }
+.cvp-acct-linkmeta { font-size: 12px; color: #A9A69C; }
+
+/* Paid-only: the EXISTING cancel flow, relocated here unchanged. */
+.cvp-acct-cancel {
+  background: none; border: none; padding: 0;
+  color: #A9A69C;
+  font-family: inherit; font-size: 12px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-cancel:hover { color: #C0392B; }
+.cvp-acct-cancel:focus-visible { outline: 2px solid #C0392B; outline-offset: 2px; }
+.cvp-acct-cancelcopy { font-size: 13px; color: #6B6B74; line-height: 1.5; margin-bottom: 14px; }
+.cvp-acct-keep {
+  width: 100%;
+  background: #16161A; color: #FFFDF8;
+  border: none; border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13.5px; font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  margin-bottom: 8px;
+  min-height: 48px;
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-keep:hover { opacity: 0.88; }
+.cvp-acct-yescancel {
+  display: block; text-align: center;
+  font-size: 12px; color: #8A8880; text-decoration: none;
+  padding: 8px 0;
+  transition: color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-yescancel:hover { color: #C0392B; }
+.cvp-acct-cancelnote { font-size: 10.5px; color: #A9A69C; margin-top: 8px; line-height: 1.4; }
+
+/* ── 1b — desktop sidebar popover ───────────────────────────── */
+/* Anchored to the sidebar's existing relative user-card wrapper, which sits
+   directly above the row — so "opens upward from the user row" holds
+   without hardcoding the sidebar's height. */
+.cvp-acct-pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 296px;
+  max-width: calc(100vw - 24px);
+  transform-origin: bottom left;
+  background: #FFFDF8;
+  border: 1px solid #E4E4E0;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(30, 26, 18, 0.14);
+  padding: 8px;
+  z-index: 5;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: #16161A;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: scale(0.94) translateY(8px);
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 300ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cvp-acct-pop[data-open="true"] {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+.cvp-acct-pophead {
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px 12px 14px;
+  border-bottom: 1px solid #EFEDE6;
+}
+.cvp-acct-popavatar {
+  width: 38px; height: 38px;
+  border-radius: 999px;
+  background: #F0EADC; color: #8A6A2F;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+.cvp-acct-popname { font-size: 14px; font-weight: 700; }
+.cvp-acct-popbadge {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: #B45309;
+  background: rgba(217, 119, 6, 0.10);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.cvp-acct-popemail {
+  font-size: 12px; color: #6B6B74; margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cvp-acct-poprows { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; }
+.cvp-acct-poprow {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-family: inherit; font-size: 13.5px; font-weight: 600;
+  color: #16161A;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-poprow:hover { background: #F5F2EA; }
+.cvp-acct-poprow:focus-visible { outline: 2px solid #B45309; outline-offset: -2px; }
+.cvp-acct-poprow > span:first-child { display: flex; align-items: center; gap: 11px; }
+.cvp-acct-popmeta { font-size: 11px; color: #A9A69C; }
+.cvp-acct-popfoot { border-top: 1px solid #EFEDE6; padding: 6px 0 2px; }
+.cvp-acct-popsignout {
+  width: 100%;
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: #8A8880;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-acct-popsignout:hover { background: #FBF0EF; color: #C0392B; }
+.cvp-acct-popsignout:focus-visible { outline: 2px solid #C0392B; outline-offset: -2px; }
+
+/* ── Night mode ─────────────────────────────────────────────────
+   The design file is light-only, but the v2 dashboard ships a day/night
+   toggle (DashboardPage sets data-theme on .dashv2-root). Rather than
+   flash a white sheet over a dark dashboard, the surfaces re-map onto the
+   dashboard's own night tokens. Day is byte-for-byte the design; this
+   block only engages when the user has chosen night. */
+[data-theme="dark"] .cvp-acct-sheet,
+[data-theme="dark"] .cvp-acct-pop {
+  background: var(--card, #17141E);
+  border-color: var(--border-strong, #322B3E);
+  color: var(--text, #F4F2F7);
+}
+[data-theme="dark"] .cvp-acct-grabber i { background: var(--border-strong, #322B3E); }
+[data-theme="dark"] .cvp-acct-head,
+[data-theme="dark"] .cvp-acct-subhead,
+[data-theme="dark"] .cvp-acct-signout-wrap,
+[data-theme="dark"] .cvp-acct-links,
+[data-theme="dark"] .cvp-acct-pophead,
+[data-theme="dark"] .cvp-acct-popfoot { border-color: var(--border, #241F2E); }
+[data-theme="dark"] .cvp-acct-avatar,
+[data-theme="dark"] .cvp-acct-popavatar { background: var(--gold-soft, rgba(224,164,88,0.16)); color: var(--gold-strong, #E0A458); }
+[data-theme="dark"] .cvp-acct-badge,
+[data-theme="dark"] .cvp-acct-popbadge {
+  color: var(--gold-strong, #E0A458);
+  background: var(--gold-soft, rgba(224,164,88,0.16));
+  border-color: var(--gold-border, rgba(224,164,88,0.24));
+}
+[data-theme="dark"] .cvp-acct-name,
+[data-theme="dark"] .cvp-acct-popname,
+[data-theme="dark"] .cvp-acct-rowtitle,
+[data-theme="dark"] .cvp-acct-subtitle,
+[data-theme="dark"] .cvp-acct-planname,
+[data-theme="dark"] .cvp-acct-poprow { color: var(--text, #F4F2F7); }
+[data-theme="dark"] .cvp-acct-email,
+[data-theme="dark"] .cvp-acct-popemail,
+[data-theme="dark"] .cvp-acct-rowsub,
+[data-theme="dark"] .cvp-acct-planmeta,
+[data-theme="dark"] .cvp-acct-check { color: var(--soft, #B9B4C2); }
+[data-theme="dark"] .cvp-acct-eyebrow,
+[data-theme="dark"] .cvp-acct-ctanote,
+[data-theme="dark"] .cvp-acct-linkmeta,
+[data-theme="dark"] .cvp-acct-popmeta,
+[data-theme="dark"] .cvp-acct-chev { color: var(--muted, #7C7686); }
+[data-theme="dark"] .cvp-acct-link { color: var(--soft, #B9B4C2); }
+[data-theme="dark"] .cvp-acct-tile,
+[data-theme="dark"] .cvp-acct-iconbtn {
+  background: var(--card-2, #1C1826);
+  border-color: var(--border, #241F2E);
+  color: var(--soft, #B9B4C2);
+}
+[data-theme="dark"] .cvp-acct-tile--home { background: var(--gold-card, rgba(224,164,88,0.10)); border-color: var(--gold-border, rgba(224,164,88,0.24)); color: var(--gold-strong, #E0A458); }
+[data-theme="dark"] .cvp-acct-plancard { background: var(--card-2, #1C1826); border-color: var(--border, #241F2E); }
+[data-theme="dark"] .cvp-acct-cta {
+  background: var(--gold-card, rgba(224,164,88,0.10));
+  border-color: var(--gold-border, rgba(224,164,88,0.24));
+  color: var(--gold-strong, #E0A458);
+}
+[data-theme="dark"] .cvp-acct-row:hover,
+[data-theme="dark"] .cvp-acct-link:hover,
+[data-theme="dark"] .cvp-acct-poprow:hover,
+[data-theme="dark"] .cvp-acct-iconbtn:hover { background: var(--hover, #211C2B); }
+[data-theme="dark"] .cvp-acct-keep { background: var(--ink-btn, #FFFFFF); color: var(--ink-btn-fg, #0C0B10); }
+
+/* Design note: "prefers-reduced-motion: drop the spring, fade the scrim
+   only" — the sheet and popover snap into place, the scrim still fades. */
+@media (prefers-reduced-motion: reduce) {
+  .cvp-acct-sheet,
+  .cvp-acct-pop { transition: none !important; }
+  .cvp-acct-row,
+  .cvp-acct-link,
+  .cvp-acct-cta,
+  .cvp-acct-signout,
+  .cvp-acct-poprow,
+  .cvp-acct-popsignout,
+  .cvp-acct-iconbtn { transition: none !important; }
+}

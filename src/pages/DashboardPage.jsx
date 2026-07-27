@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
-import { getPaymentLink } from "../utils/paywall";
 import CVPassportLogo from "../components/CVPassportLogo";
 import NewCvLobby from "../components/NewCvLobby";
 import { TEMPLATES, getStrength } from "../cvShared";
 import { supabase } from "../appSupabaseClient";
 import { loadUserResumes } from "../resumeDb";
 import NoIndex from "../components/seo/NoIndex";
+import AccountSheet from "../components/account/AccountSheet";
+import AccountMenu from "../components/account/AccountMenu";
 import "./DashboardPage.css";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -101,12 +102,6 @@ function IconSun({ size = 18 }) {
 }
 function IconMoon({ size = 18 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>;
-}
-function IconGear({ size = 13 }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>;
-}
-function IconSignOut({ size = 13 }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
 }
 function IconSmile({ size = 20 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>;
@@ -299,7 +294,11 @@ export default function DashboardPage({
   const [active, setActive] = useState("mycvs");
   const [mobileTab, setMobileTab] = useState("mycvs");
   const [lobbyOpen, setLobbyOpen] = useState(false);
-  const [planModalOpen, setPlanModalOpen] = useState(false);
+  /* Account surfaces — Claude Design "Account Sheet" (Turn 1). The old
+     "Your plan" modal is replaced by the mobile bottom sheet (1a/1c);
+     cancelStep is UNCHANGED and now drives the same two-step cancel flow
+     inside the sheet's Account & plan screen for paid users. */
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
   const [cancelStep, setCancelStep] = useState(0);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -313,7 +312,7 @@ export default function DashboardPage({
   const userPopoverRef = useRef(null);
 
   useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
-  useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
+  useEffect(() => { if (accountSheetOpen) setCancelStep(0); }, [accountSheetOpen]);
 
   // Outside-click + Escape close for the desktop user popover.
   useEffect(() => {
@@ -349,7 +348,7 @@ export default function DashboardPage({
     if (resumeList.length === 0) setLobbyOpen(true);
     else onBuildResume();
   };
-  const openAccount = () => setPlanModalOpen(true);
+  const openAccount = () => setAccountSheetOpen(true);
   const runJobMatch = () => navigate("/builder?tab=jobmatch");
 
   const planLabel = isPro ? "Pro" : "Free";
@@ -593,25 +592,26 @@ export default function DashboardPage({
             </nav>
             {/* User card + popover */}
             <div style={{ marginTop: "auto", position: "relative" }}>
-              {userPopoverOpen && (
-                <div ref={userPopoverRef} role="menu" style={{ position: "absolute", left: 0, right: 0, bottom: "calc(100% + 8px)", background: t.card, border: `1px solid ${t.borderStrong}`, borderRadius: 12, padding: 6, boxShadow: t.shadow, zIndex: 50 }}>
-                  <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); setPlanModalOpen(true); }} style={popItem()}>
-                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.gold }}><IconSpark size={13} /></span><span>Upgrade plan</span>
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); navigate("/account"); }} style={popItem()}>
-                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.soft }}><IconGear size={13} /></span><span>Account settings</span>
-                  </button>
-                  {(dashUserType === "both" || dashUserType === "recruiter") && (
-                    <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); navigate("/employer/jobs"); }} style={popItem()}>
-                      <span style={{ width: 18, display: "grid", placeItems: "center", color: t.soft }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg></span><span>Switch to employer</span>
-                    </button>
-                  )}
-                  <div style={{ height: 1, background: t.border, margin: "4px 6px" }} />
-                  <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); handleSignOut(); }} style={popItem(t.danger)}>
-                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.danger }}><IconSignOut size={13} /></span><span>Sign out</span>
-                  </button>
-                </div>
-              )}
+              {/* 1b — desktop account popover. Opens upward from the user
+                  row; Esc / outside-click / a second click close it. */}
+              <AccountMenu
+                open={userPopoverOpen}
+                onClose={() => setUserPopoverOpen(false)}
+                user={user}
+                planLabel={planLabel}
+                initials={initials}
+                onSignOut={handleSignOut}
+                anchorRef={userCardRef}
+                popoverRef={userPopoverRef}
+                /* Dual-role accounts keep their existing doorway into the
+                   employer portal — a different audience's route, not one of
+                   the account rows the design specifies. */
+                extraRow={
+                  dashUserType === "both" || dashUserType === "recruiter"
+                    ? { label: "Switch to employer", to: "/employer/jobs" }
+                    : null
+                }
+              />
               <button ref={userCardRef} type="button" aria-haspopup="menu" aria-expanded={userPopoverOpen} onClick={() => setUserPopoverOpen((v) => !v)}
                 style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "11px 12px", border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: t.text }}>
                 <span style={{ width: 34, height: 34, borderRadius: "50%", background: t.goldSoft, color: t.gold, fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials}</span>
@@ -661,10 +661,17 @@ export default function DashboardPage({
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
               <button type="button" onClick={openAccount} aria-label="Account and plan" style={{ width: 44, height: 44, flexShrink: 0, borderRadius: "50%", background: t.goldSoft, color: t.gold, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: 0, cursor: "pointer", fontFamily: "inherit" }}>{initials}</button>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              {/* The NAME is a trigger too, not just the avatar — the design
+                  routes "name tap / Account tab → the account sheet". */}
+              <button
+                type="button"
+                onClick={openAccount}
+                aria-label="Account and plan"
+                style={{ flex: 1, minWidth: 0, background: "none", border: 0, padding: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
+              >
                 <p style={{ margin: 0, fontSize: 13, color: t.muted }}>{greeting}</p>
                 <p style={{ margin: "2px 0 0", fontSize: 19, fontWeight: 800, letterSpacing: "-0.02em", color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</p>
-              </div>
+              </button>
               <ThemeToggle mode={mode} onToggle={toggleTheme} />
             </div>
 
@@ -685,8 +692,16 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* Bottom nav */}
-        <nav className="dashv2-bottomnav">
+        {/* Bottom nav — fades out behind the account sheet and returns on
+            close, per the design's mobile build spec. */}
+        <nav
+          className="dashv2-bottomnav"
+          style={{
+            opacity: accountSheetOpen ? 0 : 1,
+            pointerEvents: accountSheetOpen ? "none" : "auto",
+            transition: `opacity 200ms ${EASE}`,
+          }}
+        >
           {bottomNav.map((b) => {
             const on = mobileTab === b.id;
             const color = on ? t.gold : t.muted;
@@ -709,45 +724,23 @@ export default function DashboardPage({
         />
       )}
 
-      {/* ═══ PLAN / ACCOUNT MODAL ═══ */}
-      {planModalOpen && (
-        <>
-          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 400, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => setPlanModalOpen(false)} />
-          <div role="dialog" aria-modal="true" style={{ position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 401, width: "calc(100% - 32px)", maxWidth: 360, maxHeight: "calc(100dvh - 32px)", overflowY: "auto", WebkitOverflowScrolling: "touch", background: t.card, border: `1px solid ${t.border}`, borderRadius: 20, padding: 24, paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
-            <button type="button" onClick={() => setPlanModalOpen(false)} aria-label="Close" style={{ position: "absolute", top: 14, right: 14, background: "none", border: "none", color: t.muted, cursor: "pointer", padding: 4 }}><IconX /></button>
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Your plan</div>
-            <div style={{ fontSize: 12, color: t.muted, marginBottom: 16 }}>Manage your CVPassport subscription.</div>
-            <div style={{ background: t.card2, border: `1px solid ${isPaid ? t.emerald : t.goldBorder}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? t.text : t.gold }}>{profile?.plan || "Explorer"}</div>
-              <div style={{ fontSize: 11, color: isPaid ? t.emerald : t.muted, marginTop: 4 }}>{isPaid ? "Unlimited everything" : "Limited features, upgrade to unlock all"}</div>
-            </div>
-            {cancelStep === 0 ? (
-              <>
-                {!isPaid ? (
-                  <>
-                    <button type="button" onClick={async () => { const url = await getPaymentLink("activeHunter"); if (url) window.location.href = url; }} style={ctaBtn()}>Upgrade to Active Hunter, AED 29/mo →</button>
-                    <button type="button" onClick={() => { setPlanModalOpen(false); navigate("/pricing"); }} style={ghostBtn()}>View all plans →</button>
-                  </>
-                ) : (
-                  <>
-                    <button type="button" onClick={async () => { const url = await getPaymentLink("careerPro"); if (url) window.location.href = url; }} style={ctaBtn()}>Upgrade to Career Pro, AED 199/yr →</button>
-                    <div style={{ height: 1, background: t.border, margin: "8px 0" }} />
-                    <button type="button" onClick={() => setCancelStep(1)} style={{ background: "none", border: "none", color: t.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>Cancel subscription</button>
-                  </>
-                )}
-              </>
-            ) : (
-              <div>
-                <div style={{ fontSize: 13, color: t.soft, lineHeight: 1.5, marginBottom: 14 }}>Are you sure? Your plan continues until the end of the billing period. After that your account reverts to Free.</div>
-                <button type="button" onClick={() => setCancelStep(0)} style={ctaBtn()}>Keep my plan</button>
-                <a href="mailto:support@mycvpassport.com?subject=Cancel Subscription" style={{ display: "block", textAlign: "center", fontSize: 12, color: t.muted, textDecoration: "none", padding: "8px 0" }}>Yes, cancel</a>
-              </div>
-            )}
-            <div style={{ height: 1, background: t.border, margin: "16px 0 4px" }} />
-            <button type="button" onClick={handleSignOut} style={{ width: "100%", background: "none", border: "none", color: t.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: "8px 0", textAlign: "center" }}>Sign out</button>
-          </div>
-        </>
-      )}
+      {/* ═══ ACCOUNT SHEET (1a) + ACCOUNT & PLAN (1c) ═══
+           Replaces the old "Your plan" modal as the destination of the
+           name/avatar tap and the Account tab. The two-step cancel flow the
+           modal owned now renders inside the sheet for paid users only —
+           same steps, same copy, same mailto, logic untouched. ═══ */}
+      <AccountSheet
+        open={accountSheetOpen}
+        onClose={() => setAccountSheetOpen(false)}
+        user={user}
+        isPaid={isPaid}
+        planLabel={planLabel}
+        initials={initials}
+        onSignOut={handleSignOut}
+        cancelStep={cancelStep}
+        onCancelStart={() => setCancelStep(1)}
+        onCancelKeep={() => setCancelStep(0)}
+      />
 
       {/* ═══ FEEDBACK MODAL ═══ */}
       {feedbackOpen && (
@@ -800,15 +793,4 @@ export default function DashboardPage({
       <FAB tabKey={active === "account" ? "account" : "mycvs"} cvsCount={resumeList.length} />
     </div>
   );
-
-  /* Shared style helpers for the plan modal / popover. */
-  function popItem(color) {
-    return { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "transparent", border: "none", borderRadius: 8, color: color || t.text, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", textAlign: "left" };
-  }
-  function ctaBtn() {
-    return { display: "block", width: "100%", background: t.inkBtn, color: t.inkBtnFg, borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700, textAlign: "center", marginBottom: 8, boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit" };
-  }
-  function ghostBtn() {
-    return { width: "100%", background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
-  }
 }
