@@ -34,6 +34,15 @@ const check = (ok, label) => {
   if (!ok) failures += 1;
 };
 
+/* A check that cannot run yet. Counts as NEITHER a pass nor a failure —
+   it prints loudly and is re-listed in the summary so it stays an obvious
+   reminder rather than quietly disappearing into a green run. */
+const skipped = [];
+const skip = (label) => {
+  console.log(`⊘ SKIP: ${label}`);
+  skipped.push(label);
+};
+
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".txt": "text/plain", ".xml": "text/xml", ".webp": "image/webp", ".woff2": "font/woff2" };
 const server = createServer((req, res) => {
   const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
@@ -214,18 +223,22 @@ async function openExplore(page) {
   await context.close();
 }
 
-/* ── 4) dashboard tile — STATIC check ─────────────────────────────
-   /dashboard does not boot under this backend stub (the auth session is
-   not restored, so App bounces to "/"), which means a click-through here
-   would silently be re-testing the landing footer instead. Rather than
-   claim coverage we do not have, assert it at the source: the tile must
-   call the gate, and NO entry point anywhere may still navigate straight
-   to the board. Click this one tile by hand during QA. */
+/* ── 4) dashboard tile — QUARANTINED + repo-wide sweep ────────────
+   The tile check used to readFileSync("./src/Dashboard.jsx") and assert
+   the Browse Jobs tile routed through the gate. That file was dead code —
+   nothing imported it — so the check was passing against a dashboard no
+   user could reach. Dashboard v2 (src/pages/DashboardPage.jsx, dashv2-*)
+   has no Browse Jobs tile at all: no tile, no browseJobs, no /jobs link,
+   because the board is still "coming soon".
+
+   There is therefore nothing live to gate, so the assertion is skipped
+   rather than quietly deleted or faked green. Re-arm it against
+   DashboardPage.jsx when the tile returns.
+
+   The repo-wide sweep below is unaffected and still runs: no entry point
+   anywhere may navigate straight to the board. */
 {
-  const dash = readFileSync("./src/Dashboard.jsx", "utf8");
-  const tileLine = dash.split(/\r?\n/).find((l) => /id: "jobs"/.test(l)) || "";
-  check(/browseJobs\.go\(/.test(tileLine), `dashboard tile: routes through the gate (${tileLine.trim().slice(0, 90)})`);
-  check(!/navigate\("\/jobs"\)/.test(tileLine), "dashboard tile: no direct navigate to the board");
+  skip('dashboard Browse Jobs tile gate — no tile in v2 (jobs coming soon); re-arm against DashboardPage.jsx when the tile returns');
 
   // Sweep every source file: the only allowed direct nav to the board is
   // JobPage's "back to the board" from a job detail page.
@@ -361,4 +374,8 @@ async function openExplore(page) {
 await browser.close();
 server.close();
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
+if (skipped.length) {
+  console.log(`${skipped.length} CHECK(S) SKIPPED — not covered, re-arm when possible:`);
+  skipped.forEach((s) => console.log(`  ⊘ ${s}`));
+}
 process.exit(failures === 0 ? 0 : 1);
