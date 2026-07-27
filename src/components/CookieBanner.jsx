@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const CONSENT_KEY = 'cvp_cookie_consent';
 
@@ -88,6 +88,12 @@ const styleBlock = `
       align-items: flex-start;
       gap: 12px;
     }
+    /* The banner is the last thing above the home indicator. Without this
+       the Accept / Essential Only buttons sit under it on a notched phone,
+       which makes consent hard to give and the banner hard to dismiss. */
+    .cvp-cookie-banner {
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    }
   }
 `;
 
@@ -97,6 +103,36 @@ function CookieBanner() {
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [unmounted, setUnmounted] = useState(false);
+  const bannerRef = useRef(null);
+
+  /* Publish the banner's live height as --cvp-cookie-h so other fixed
+     bottom-anchored UI (the landing FAB) can lift clear of it instead of
+     being buried under a z-index 999 full-width bar. Measured rather than
+     hardcoded: the banner is one row on desktop and three on a phone.
+     Cleared on unmount so the offset never outlives the banner. */
+  useEffect(() => {
+    const root = document.documentElement;
+    const node = bannerRef.current;
+    if (!node || exiting || unmounted) {
+      root.style.removeProperty('--cvp-cookie-h');
+      return undefined;
+    }
+    const publish = () => {
+      root.style.setProperty('--cvp-cookie-h', `${Math.round(node.getBoundingClientRect().height)}px`);
+    };
+    publish();
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(publish);
+      ro.observe(node);
+    }
+    window.addEventListener('resize', publish);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', publish);
+      root.style.removeProperty('--cvp-cookie-h');
+    };
+  }, [visible, exiting, unmounted]);
 
   useEffect(() => {
     const v = localStorage.getItem(CONSENT_KEY);
@@ -135,7 +171,7 @@ function CookieBanner() {
   return (
     <>
       <style>{styleBlock}</style>
-      <div className={bannerClass} role="dialog" aria-label="Cookie preferences">
+      <div ref={bannerRef} className={bannerClass} role="dialog" aria-label="Cookie preferences">
         <div className="cvp-cookie-banner__inner">
           <p className="cvp-cookie-banner__text">
             We use essential cookies to keep CVPassport running, and optional analytics

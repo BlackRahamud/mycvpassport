@@ -150,6 +150,25 @@ export default function FloatingActionButton({
             font-size: 13.5px;
           }
         }
+        /* Mobile only. The cookie banner is a full-width fixed bar at
+           z-index 999, so on a phone it sat completely over this button and
+           buried the primary CTA until consent was given. --cvp-cookie-h is
+           published by CookieBanner while it is on screen and removed the
+           moment it leaves, so this resolves to the normal offset the rest
+           of the time. Desktop placement is deliberately untouched. */
+        @media (max-width: 768px) {
+          .cvp-fab {
+            bottom: calc(
+              clamp(16px, 2.4vw, 28px)
+              + env(safe-area-inset-bottom, 0px)
+              + var(--cvp-cookie-h, 0px)
+            );
+            transition: bottom 220ms cubic-bezier(0.4, 0, 0.2, 1);
+          }
+        }
+        @media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+          .cvp-fab { transition: none; }
+        }
       `}</style>
       <motion.button
         type="button"
