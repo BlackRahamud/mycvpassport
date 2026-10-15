@@ -140,25 +140,21 @@ export function buildReadiness({ cv = {}, application = {}, job = {} } = {}) {
     }
   }
 
-  /* 5. Salary expectation vs the job's stated ceiling */
+  /* 5. Salary expectation — value only, no comparison.
+     parseMoney is currency- and period-blind: it reads an INR figure against
+     an AED ceiling, and an annual "12,00,000 PA" or "12 LPA" against a monthly
+     ceiling, so the "above/within ceiling" claim and the knockout it drove
+     could false-reject a genuinely deployable candidate. A wrong knockout is
+     worse than none, so until a structured currency + period comparator exists
+     we surface the stated figure and let the recruiter read it against the
+     job's range herself. No knockout, no flag, no note. */
   const salaryRaw = asText(cv.salary_expectation) || asText(cv.expected_salary)
     || asText(personal.salary_expectation) || asText(personal.expected_salary)
     || asText(personal.compensation);
-  const ceiling = Number(job.salary_max) || null;
-  const currency = job.currency || "AED";
   if (!salaryRaw) {
     rows.push(missingRow("salary", "Salary expectation"));
   } else {
-    const ask = parseMoney(salaryRaw);
-    if (ask != null && ceiling != null && ask > ceiling) {
-      rows.push(row("salary", "Salary expectation", salaryRaw, "flag",
-        `Above the ${currency} ${ceiling.toLocaleString()} ceiling`));
-      knockouts.push("salary");
-    } else if (ask != null && ceiling != null) {
-      rows.push(row("salary", "Salary expectation", salaryRaw, "ok", "Within budget"));
-    } else {
-      rows.push(row("salary", "Salary expectation", salaryRaw, "ok"));
-    }
+    rows.push(row("salary", "Salary expectation", salaryRaw, "ok"));
   }
 
   const flagCount = rows.filter((r) => r.tone === "flag").length;

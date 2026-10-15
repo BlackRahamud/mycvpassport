@@ -1991,6 +1991,102 @@ const rawPosts = [
       { type: "ul", items: ["[Resume summary examples for freshers](/blog/resume-summary-for-freshers)", "[How to write a resume with no experience](/blog/resume-with-no-experience)", "[Check your ATS score free](/ats)"] }
     ],
   },
+  {
+    title: "How to Shortlist 200 Applicants Without Reading 200 Resumes",
+    slug: "shortlist-200-applicants-india-small-business",
+    metaTitle: "How to Shortlist Candidates Fast in India (Free Checklist plus AI Screening)",
+    metaDescription: "A practical 6 step process for Indian small businesses and startups to shortlist applicants faster using knockout questions, a scoring rubric and AI.",
+    keywords: [
+      "shortlist applicants India",
+      "hire without HR team",
+      "knockout questions hiring",
+      "resume screening rubric",
+      "AI candidate screening",
+      "small business hiring India",
+      "startup recruitment process",
+    ],
+    author: "@CVPassportTeam",
+    date: "Thursday, 15 Oct 2026",
+    readTime: "6 min read",
+    category: "Hiring",
+    excerpt: "Post one job on any Indian portal and hundreds of resumes arrive. Here is a repeatable process that cuts the screening work without losing good candidates.",
+    badges: [{ label: "Hiring", tone: "slate" }, { label: "For Employers", tone: "purple" }],
+    image: "/assets/blog/ai-in-recruitment-2026-hero.jpg",
+    body: [
+      { type: "p", text: "You post one job. By the weekend, 200 applications are sitting in your inbox. Most Indian small businesses and startups have no dedicated HR team, so the founder or one HR executive ends up opening PDF after PDF, losing evenings to a task that adds little value. Meanwhile, the best candidates are being called by someone else." },
+      { type: "p", text: "The good news: you do not need an expensive tool to fix this. You need a process, and then software to run that process for you. Here is a six step method you can use today." },
+
+      { type: "h2", text: "Step 1: Decide your three must haves before you post" },
+      { type: "p", text: "Most screening pain starts with a vague job post. Before you publish, write down:" },
+      { type: "ul", items: [
+        "Three must haves: things a candidate cannot do the job without (for example, two plus years in inside sales, working knowledge of Tally, based in Pune).",
+        "Three nice to haves: things that help but can be learned.",
+      ] },
+      { type: "p", text: "If a resume misses a must have, it does not need a second look. This one habit removes a large share of applications quickly." },
+
+      { type: "h2", text: "Step 2: Add knockout questions to your application" },
+      { type: "p", text: "Knockout questions are simple yes or no or short answer questions that candidates answer when applying. They filter out mismatches before you spend any time. Good ones for Indian hiring:" },
+      { type: "ul", items: [
+        "Are you comfortable working from [city] or willing to relocate within 30 days?",
+        "What is your current notice period?",
+        "What is your current and expected CTC (in LPA)?",
+        "Do you have a graduation degree in [stream]? In which year did you graduate?",
+        "Are you comfortable working in [shift or language]?",
+      ] },
+      { type: "p", text: "Keep every question tied to the role. Avoid questions about age, religion, caste, marital status or family plans. They are unnecessary, unfair, and can create legal and reputational trouble." },
+
+      { type: "h2", text: "Step 3: Build a simple 5 point scoring rubric" },
+      { type: "p", text: "When every reviewer judges good differently, shortlisting becomes slow and inconsistent. Score each applicant from one to five on the same five things:" },
+      { type: "ul", items: [
+        "Skills match against your must haves",
+        "Relevant experience (not just years, but the kind of work)",
+        "Career progression and stability",
+        "Clarity of the CV and communication",
+        "Practical fit: location, notice period, salary range",
+      ] },
+      { type: "p", text: "Decide the pass mark before you start. For example, anyone scoring 18 or more out of 25 moves to the next round. Deciding in advance stops the bar from drifting halfway through." },
+
+      { type: "h2", text: "Step 4: Let AI do the first sort, and keep the final call yourself" },
+      { type: "p", text: "Manual scoring of 200 resumes is where hours disappear. This is the right job for AI: reading every application against the same criteria and putting the strongest profiles at the top. The AI is a first filter, not the decision maker. A human should always review the shortlist and make the final call, especially for borderline candidates." },
+
+      { type: "h2", text: "How CVPassport does the first sort" },
+      { type: "p", text: "When you [post a role through the CVPassport HR posting wizard](/hr/post), you describe the job once. The wizard suggests skills from the role title, shows qualification and screening question options that fit Indian hiring when you set the salary in INR, and lets you add screening questions for your role. Applicants then land in your job pipeline, sorted by a match score against your requirements so stronger fits appear first. On the free plan that score uses keyword matching from your job requirements; the Foundation plan adds full AI evaluation with a clear verdict. You review those first, move people through stages, and spend your time on conversations instead of PDFs." },
+      { type: "cta", label: "Post a job on CVPassport →", href: "/hr/post" },
+
+      { type: "h2", text: "Step 5: Shortlist a small group, not a big one" },
+      { type: "p", text: "Resist the urge to call everyone. A practical starting point is to shortlist roughly the top 10 to 15 percent of applicants for a short phone screen, then take a smaller group to interviews. Adjust that ratio using your own past results. If the shortlist keeps producing good hires, keep it. If it misses, loosen your rubric." },
+
+      { type: "h2", text: "Step 6: Reply to everyone" },
+      { type: "p", text: "Candidates in India often hear nothing after applying. A short, polite rejection message costs you two minutes with a template and builds your employer brand. People you reject today may fit another role next quarter." },
+      { type: "p", text: "A simple template: Thank you for applying for [role]. We reviewed your profile and have decided to move forward with other candidates for now. We will keep your details in mind for future roles." },
+
+      { type: "h2", text: "Common mistakes to avoid" },
+      { type: "ul", items: [
+        "Rejecting on keywords alone. A resume that uses different words for the same skill can still be a strong fit. Check the shortlist borderline cases by hand.",
+        "Changing criteria midway. Decide your must haves and pass mark first.",
+        "Treating AI scores as final. Use them to prioritise, then verify.",
+        "Skipping the job description. A clear role brief is the base of every good screen.",
+        "Leaving good candidates waiting. Speed matters. Strong candidates rarely stay available for long.",
+      ] },
+
+      { type: "h2", text: "Where to start" },
+      { type: "p", text: "Pick one open role. Write your three must haves, add three knockout questions, and decide your pass mark. That alone will shrink your next stack of applications. If you want software to run the sorting for you, [post your first job through the HR wizard](/hr/post) and see how the pipeline works. You can also browse the [public job board](/jobs) to see how roles appear to candidates. If your applicants send Gulf style CVs, the [UAE CV Format 2026 guide](/blog/uae-cv-format-2026) explains what recruiters expect on the other side of the corridor." },
+
+      { type: "h2", text: "Frequently Asked Questions" },
+      { type: "h3", text: "How many applications is too many to review manually?" },
+      { type: "p", text: "There is no fixed number, but once a role passes about 50 applications, a rubric and knockout questions save a lot of time. At 200, a structured process or software is close to essential." },
+      { type: "h3", text: "Are knockout questions legal in India?" },
+      { type: "p", text: "Questions tied to genuine job requirements, such as location, notice period, qualifications and skills, are normal practice. Avoid questions about age, religion, caste, marital status or other personal matters that do not relate to the job." },
+      { type: "h3", text: "Will AI screening reject good candidates?" },
+      { type: "p", text: "It can if you treat it as the final decision. Use AI to rank and prioritise, then manually review borderline profiles and the top group before deciding." },
+      { type: "h3", text: "What is a good shortlist size?" },
+      { type: "p", text: "A common starting point is the top 10 to 15 percent of applicants for a phone screen, then a smaller group for interviews. Adjust it using your own hiring results." },
+      { type: "h3", text: "Do I need an ATS to hire as a small business?" },
+      { type: "p", text: "Not strictly, but a simple pipeline tool keeps applications, scores and stages in one place instead of scattered across email and spreadsheets." },
+      { type: "h3", text: "Is it free to post a job on CVPassport?" },
+      { type: "p", text: "The employer free plan includes one active job at a time with match scoring on every applicant. Paid Foundation adds full AI evaluation, more active jobs, and the rest of the HR portal. See [employer pricing](/employer/pricing) for current trial and plan details." },
+    ],
+  },
 ];
 
 const posts = rawPosts.map((p) => ({ ...p, slug: p.slug || slugify(p.title) }));

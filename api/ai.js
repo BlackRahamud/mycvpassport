@@ -1904,11 +1904,15 @@ async function handleCandidateMatch(req, res, body) {
 
 const IMPORT_STRUCTURE_MODEL = process.env.IMPORT_STRUCTURE_MODEL || 'claude-haiku-4-5-20251001';
 
-function buildImportStructureSystem() {
-  return `You are an institutional-grade CV parsing engine for the India -> Gulf (UAE/GCC) recruitment corridor. You convert raw CV text into a single strict JSON candidate snapshot. You never invent data: if a field is not present in the text, omit it or use null. ASCII punctuation only. No commentary, no markdown, JSON only.`;
+export function buildImportStructureSystem() {
+  return `You are an institutional-grade CV parsing engine for the India -> Gulf (UAE/GCC) recruitment corridor. You convert raw CV text into a single strict JSON candidate snapshot.
+
+You never invent data. If a field is not present in the text, use null. The corridor readiness fields (nationality, visa_status, notice_period, salary_expectation, passport_status) are frequently absent from a CV; null is the correct, expected answer for an absent field and is never a failure. Precision beats coverage: a confident wrong value is far worse than null. Never guess, and never infer these fields from indirect signals (name, location, language, phone code, education, age, or profession).
+
+ASCII punctuation only. No commentary, no markdown, JSON only.`;
 }
 
-function buildImportStructurePrompt(text) {
+export function buildImportStructurePrompt(text) {
   return `Parse the following CV text into ONE strict JSON object with EXACTLY these keys:
 
 {
@@ -1916,10 +1920,13 @@ function buildImportStructurePrompt(text) {
   "email": string | null,
   "phone": string | null,
   "location": string | null,
+  "nationality": string | null,
   "desired_job": string | null,
   "summary": string | null,
   "visa_status": string | null,
   "notice_period": string | null,
+  "salary_expectation": string | null,
+  "passport_status": string | null,
   "skills": string[],
   "experience": [
     { "title": string | null, "company": string | null, "location": string | null, "start_date": string | null, "end_date": string | null, "bullets": string[] }
@@ -1934,6 +1941,9 @@ RULES:
 - "name" is the candidate's full name from the header. "email" / "phone" are the candidate's own contact details if present.
 - "desired_job" is the current or target role/headline.
 - "visa_status" / "notice_period" only if the CV states them (common in Gulf CVs); else null.
+- "nationality": the candidate's stated nationality or citizenship, exactly as written (e.g. "Indian", "Filipino"), ONLY if the CV states it. Never infer it from the name, location, language, or phone code. Null if not stated.
+- "salary_expectation": the stated expected or current salary EXACTLY as written, keeping the currency and period (e.g. "AED 8,000 per month", "12 LPA", "45000 INR"). Do not convert currencies, normalise, or estimate from role or experience. Null if not stated.
+- "passport_status": ONLY the passport or emigration category the CV explicitly prints (e.g. "ECR", "ECNR", "Non-ECR"). Never infer ECR or ECNR from education, age, profession, or nationality. If the CV does not literally state it, this MUST be null.
 - "skills" is a flat array of distinct skill / tool strings (max 25). Empty array if none.
 - Preserve the candidate's real achievements in "bullets". Never fabricate metrics, employers, dates, or qualifications.
 - If the text is too garbled to parse, return the object with name null and empty arrays.
@@ -1950,7 +1960,7 @@ Return the JSON object only.`;
 // malformed so the client + DB never see surprises. Mirrors the field names
 // the pipeline (getCv/deriveSkills) and candidate_verdict already read, and
 // also nests personal.location so the "Looking for Position" grid populates.
-function normaliseImportSnapshot(p) {
+export function normaliseImportSnapshot(p) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
   const str = (v) => {
     const s = v == null ? '' : String(v).trim();
@@ -1984,10 +1994,18 @@ function normaliseImportSnapshot(p) {
     email: str(p.email),
     phone: str(p.phone),
     location,
+    // Corridor readiness fields. Captured only when the CV states them; the
+    // prompt forbids inference, so a null here means "not on the page", which
+    // readiness.js renders honestly as "Not stated". salary_expectation is
+    // kept verbatim (currency + period preserved, never converted);
+    // passport_status is the literal ECR/ECNR the CV prints, never derived.
+    nationality: str(p.nationality),
     desired_job,
     summary: str(p.summary),
     visa_status: str(p.visa_status),
     notice_period: str(p.notice_period),
+    salary_expectation: str(p.salary_expectation || p.expected_salary),
+    passport_status: str(p.passport_status),
     skills: arrStr(p.skills, 25),
     experience,
     education,

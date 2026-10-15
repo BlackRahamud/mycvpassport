@@ -97,12 +97,13 @@ describe("buildReadiness", () => {
     expect(out.knockouts).toEqual([]);
     const salary = out.rows.find((r) => r.key === "salary");
     expect(salary.tone).toBe("ok");
-    expect(salary.note).toBe("Within budget");
+    // Value shown, no comparison claim (currency/period-safe guard).
+    expect(salary.note).toBeNull();
     const passport = out.rows.find((r) => r.key === "passport");
     expect(passport.note).toBe("No emigration clearance needed");
   });
 
-  it("offshore + ECR + over-ceiling salary flags with reasons and a salary knockout", () => {
+  it("offshore + ECR + sponsorship + long notice flag; salary shows as value, never a knockout", () => {
     const out = buildReadiness({
       cv: {
         location: "Bengaluru, India",
@@ -121,10 +122,12 @@ describe("buildReadiness", () => {
     expect(byKey.passport.note).toMatch(/emigration clearance/i);
     expect(byKey.visa.tone).toBe("flag");
     expect(byKey.notice.tone).toBe("flag");
-    expect(byKey.salary.tone).toBe("flag");
-    expect(byKey.salary.note).toBe("Above the AED 7,000 ceiling");
-    expect(out.knockouts).toEqual(["salary"]);
-    expect(out.flagCount).toBe(5);
+    // Salary is shown but never compared: no flag, no note, no knockout.
+    expect(byKey.salary.tone).toBe("ok");
+    expect(byKey.salary.value).toBe("AED 9,500 plus family medical");
+    expect(byKey.salary.note).toBeNull();
+    expect(out.knockouts).toEqual([]);
+    expect(out.flagCount).toBe(4);
   });
 
   it("missing fields degrade to Not stated, never a crash", () => {
