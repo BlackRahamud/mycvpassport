@@ -1,28 +1,9 @@
 // =============================================================
 // src/components/hr/NotificationsBell.jsx
 //
-// Shared notifications bell for the HR portal (Jobs landing + pipeline).
-// Reads hr_notifications where hr_id = auth.uid(), newest first. The
-// hr_notifications RLS policy is FOR ALL on the owning HR, so read
-// flips and row deletes are plain client writes — no new backend.
-//
-// iOS-style UX (design brief Jul 2026):
-// - red dot badge (#FF3B30) with a spring pop when the count changes;
-//   no badge at zero. List refreshes every 60s so arrivals pop in.
-// - panel opens with a spring fade + drop + scale from the bell corner.
-// - rows render "New applicant" as a small label with the candidate's
-//   name (Title Cased) as the line — the stored "title — name" em dash
-//   is parsed out and NEVER rendered.
-// - per-row actions, ONE interaction model per device (never both):
-//   touch (coarse pointer) swipes left to reveal compact iOS-style
-//   action tiles (Read / Mute / Delete); desktop (hover + fine pointer)
-//   gets a hover "…" button opening a small anchored menu. Delete
-//   removes the DB row and collapses the row out. Mute hides that
-//   notification TYPE on this device (localStorage, viewPref pattern) —
-//   a footer line shows what's muted with one-tap Unmute.
-//
-// `buttonClassName` lets each page keep its own bell button styling
-// (hjl-icon-btn on Jobs, jpp-icon-btn on the pipeline).
+// Shared notifications bell for the HR portal.
+// Fully integrated with Glassmorphism, Category Filter Tabs, 
+// Candidate Initials/Avatars, and smooth spring animations.
 // =============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -38,17 +19,16 @@ const POP_SPRING = { type: "spring", stiffness: 520, damping: 18 };
 const PANEL_SPRING = { type: "spring", stiffness: 380, damping: 30, mass: 0.8 };
 const ROW_SPRING = { type: "spring", stiffness: 420, damping: 34 };
 
-/* Human labels per hr_notifications.type — the small line above the name. */
-const TYPE_LABELS = {
-  new_application: "New applicant",
-  viewed: "Application viewed",
-  shortlisted: "Shortlisted",
-  job_closed: "Job closed",
-  system: "Update",
+/* Human labels and color themes per hr_notifications.type */
+const TYPE_CONFIG = {
+  new_application: { label: "New applicant", badgeClass: "nb-tag--purple" },
+  viewed: { label: "Application viewed", badgeClass: "nb-tag--blue" },
+  shortlisted: { label: "Shortlisted", badgeClass: "nb-tag--green" },
+  job_closed: { label: "Job closed", badgeClass: "nb-tag--amber" },
+  system: { label: "Update", badgeClass: "nb-tag--slate" },
 };
 
-/* Mute preference — per user, per device (localStorage, same pattern as
-   cvp_pipeline_view). Muted TYPES are hidden from the list and badge. */
+/* Mute preference — per user, per device */
 const mutedKey = (userId) => `cvp_notif_muted_${userId || "anon"}`;
 export function readMutedTypes(userId) {
   try {
@@ -60,35 +40,42 @@ export function writeMutedTypes(userId, types) {
   try { window.localStorage?.setItem(mutedKey(userId), JSON.stringify(types)); } catch { /* private mode */ }
 }
 
-/* Title Case a NAME: fix all-lower/ALL-UPPER words ("junaid khan" ->
-   "Junaid Khan", "AL-BALUSHI" -> "Al-Balushi") but leave deliberate
-   mixed case ("McDonald", "van der Berg" keeps "van"? no — only words
-   that already mix cases are preserved). */
 export function titleCaseName(s) {
   return String(s).replace(/[\p{L}\p{M}'’]+/gu, (w) => {
-    if (/\p{Lu}/u.test(w) && /\p{Ll}/u.test(w)) return w; // mixed case — intentional
+    if (/\p{Lu}/u.test(w) && /\p{Ll}/u.test(w)) return w;
     return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
   });
 }
 
-/* Strip any spaced dash separator (hyphen, en, em, double hyphen) that
-   the stored strings may carry — never rendered per the copy rule.
-   Hyphenated names (no surrounding spaces) are untouched. */
 const DASH_SPLIT = /\s+[-–—]{1,2}\s+/;
 const stripDashes = (s) => String(s).replace(new RegExp(DASH_SPLIT.source, "g"), ", ");
 
-/* "New applicant — junaid khan" -> { label: "New applicant", main: "Junaid Khan" }.
-   No-dash titles keep their text and get a label from the type map. */
+function getInitials(name) {
+  const clean = String(name || "").replace(/[^a-zA-Z\s]/g, "").trim();
+  const words = clean.split(/\s+/);
+  if (words.length >= 2 && words[0][0] && words[1][0]) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return words[0] ? words[0].substring(0, 2).toUpperCase() : "HR";
+}
+
 export function formatNotification(n) {
   const raw = String(n?.title || "").trim();
   const parts = raw.split(DASH_SPLIT);
+  const config = TYPE_CONFIG[n?.type] || TYPE_CONFIG.system;
   if (parts.length >= 2) {
+    const candidateName = parts.slice(1).join(", ");
     return {
-      label: TYPE_LABELS[n?.type] || parts[0],
-      main: titleCaseName(parts.slice(1).join(", ")),
+      label: config.label || parts[0],
+      main: titleCaseName(candidateName),
+      initials: getInitials(candidateName),
     };
   }
-  return { label: TYPE_LABELS[n?.type] || null, main: raw };
+  return { 
+    label: config.label || null, 
+    main: raw, 
+    initials: getInitials(raw) 
+  };
 }
 
 const BellIc = () => (
@@ -118,8 +105,6 @@ const TrashIc = () => (
   </svg>
 );
 
-/* ONE interaction model per device: fine-pointer hover devices get the
-   "…" menu; coarse-pointer (touch) devices get swipe tiles. Never both. */
 const HOVER_FINE_QUERY = "(hover: hover) and (pointer: fine)";
 
 function timeAgo(s) {
@@ -135,8 +120,6 @@ function timeAgo(s) {
   return new Date(t).toLocaleDateString();
 }
 
-/* ── Desktop "…" menu — anchored portal (nb-pop clips overflow, so the
-      menu can't live inside it). Same pattern as the kanban MoveMenu. ── */
 function RowMenu({ n, anchorRect, onClose, onDelete, onMute, onMarkRead }) {
   const menuRef = useRef(null);
   useEffect(() => {
@@ -156,7 +139,7 @@ function RowMenu({ n, anchorRect, onClose, onDelete, onMute, onMarkRead }) {
     left: Math.min(anchorRect.left, window.innerWidth - 196),
     zIndex: 4100,
   };
-  const typeLabel = TYPE_LABELS[n.type] || "this type";
+  const typeLabel = TYPE_CONFIG[n.type]?.label || "this type";
   return createPortal(
     <div ref={menuRef} className="nb-menu" role="menu" aria-label="Notification actions" style={style}>
       {!n.read && (
@@ -175,21 +158,19 @@ function RowMenu({ n, anchorRect, onClose, onDelete, onMute, onMarkRead }) {
   );
 }
 
-/* ── One notification row.
-      Touch: swipe left reveals compact iOS tiles (Read / Mute / Delete),
-      row-height, rounded, inset from the panel edge. Desktop: hover "…"
-      opens RowMenu — no swipe layer rendered at all. ── */
 const TILE_W = 56;
 const TILE_GAP = 6;
-const TILE_PAD = 8; /* inset from the panel edge + between content and tiles */
+const TILE_PAD = 8;
 
 function NotificationRow({ n, revealed, anyRevealed, onReveal, onOpen, onDelete, onMute, onMarkRead, onMenu, hoverFine, reduce }) {
   const isUnread = !n.read;
   const tileCount = isUnread ? 3 : 2;
   const revealWidth = tileCount * TILE_W + (tileCount - 1) * TILE_GAP + TILE_PAD * 2;
   const draggingRef = useRef(false);
-  const { label, main } = formatNotification(n);
+  const { label, main, initials } = formatNotification(n);
   const swipeable = !hoverFine && !reduce;
+  const config = TYPE_CONFIG[n?.type] || TYPE_CONFIG.system;
+
   return (
     <motion.div
       className="nb-row"
@@ -232,11 +213,13 @@ function NotificationRow({ n, revealed, anyRevealed, onReveal, onOpen, onDelete,
           className={`nb-item${isUnread ? " nb-item--unread" : ""}`}
           onClick={() => {
             if (draggingRef.current) return;
-            // Any open row: a tap anywhere just closes it, iOS-style.
             if (anyRevealed) { onReveal(null); return; }
             onOpen(n);
           }}
         >
+          <div className={`nb-item__avatar ${config.badgeClass}`}>
+            <span>{initials}</span>
+          </div>
           <span className="nb-item__dot" aria-hidden="true" />
           <span className="nb-item__body">
             {label && <span className="nb-item__label">{label}</span>}
@@ -268,12 +251,13 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
   const navigate = useNavigate();
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(null); // null = loading
+  const [items, setItems] = useState(null);
   const [muted, setMuted] = useState(() => readMutedTypes(userId));
   const [revealedId, setRevealedId] = useState(null);
-  const [rowMenu, setRowMenu] = useState(null); // { n, rect } — desktop "…" menu
+  const [rowMenu, setRowMenu] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
   const rootRef = useRef(null);
-  // Guarded: jsdom has no matchMedia. Defaults to the desktop menu model.
+
   const [hoverFine, setHoverFine] = useState(() =>
     typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? window.matchMedia(HOVER_FINE_QUERY).matches
@@ -288,7 +272,6 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Portal + Floating UI so the popover can't be clipped by a topbar/card.
   const { referenceRef, floatingRef, floatingStyle } = useAnchoredPosition({
     open, placement: "bottom-end", gap: 8, padding: 8,
   });
@@ -307,7 +290,6 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setMuted(readMutedTypes(userId)); }, [userId]);
 
-  // Light refresh so a new arrival pops the badge without a reload.
   useEffect(() => {
     if (!userId) return undefined;
     const t = setInterval(load, 60000);
@@ -319,7 +301,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
     const onDown = (e) => {
       if (rootRef.current?.contains(e.target)) return;
       if (floatingRef.current?.contains(e.target)) return;
-      if (e.target.closest?.(".nb-menu")) return; // row menu is portaled outside the panel
+      if (e.target.closest?.(".nb-menu")) return;
       setOpen(false);
     };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
@@ -328,8 +310,14 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [open, floatingRef]);
 
-  const visible = (items || []).filter((n) => !muted.includes(n.type || "system"));
-  const unread = visible.filter((n) => !n.read).length;
+  const visible = (items || []).filter((n) => {
+    if (muted.includes(n.type || "system")) return false;
+    if (activeTab === "applicants") return n.type === "new_application" || n.type === "shortlisted";
+    if (activeTab === "updates") return n.type !== "new_application" && n.type !== "shortlisted";
+    return true;
+  });
+
+  const unread = (items || []).filter((n) => !muted.includes(n.type || "system") && !n.read).length;
 
   const markAllRead = async () => {
     if (!userId || unread === 0) return;
@@ -353,8 +341,6 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
     supabase.from("hr_notifications").update({ read: true }).eq("id", n.id).then(() => {}, () => {});
   };
 
-  // Real delete — RLS (FOR ALL on hr_id) permits it. Optimistic removal
-  // with the row collapse; on failure the list reloads (no silent loss).
   const deleteRow = async (n) => {
     setRevealedId(null);
     setItems((prev) => (prev || []).filter((x) => x.id !== n.id));
@@ -362,7 +348,6 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
     if (error) load();
   };
 
-  // Mute this notification TYPE on this device.
   const muteRow = (n) => {
     setRevealedId(null);
     const t = n.type || "system";
@@ -416,7 +401,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
         {open && (
           <motion.div
             ref={floatingRef}
-            className="nb-pop"
+            className="nb-pop nb-pop--glass"
             role="menu"
             style={{ ...floatingStyle, transformOrigin: "top right" }}
             initial={reduce ? false : { opacity: 0, scale: 0.95, y: -10 }}
@@ -430,6 +415,13 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
                 <button type="button" className="nb-head__mark" onClick={markAllRead}>Mark all read</button>
               )}
             </div>
+
+            <div className="nb-tabs">
+              <button type="button" className={`nb-tab ${activeTab === "all" ? "nb-tab--active" : ""}`} onClick={() => setActiveTab("all")}>All</button>
+              <button type="button" className={`nb-tab ${activeTab === "applicants" ? "nb-tab--active" : ""}`} onClick={() => setActiveTab("applicants")}>Applicants</button>
+              <button type="button" className={`nb-tab ${activeTab === "updates" ? "nb-tab--active" : ""}`} onClick={() => setActiveTab("updates")}>Updates</button>
+            </div>
+
             <div className="nb-list">
               {items === null ? (
                 <div className="nb-empty"><p className="nb-empty__t">Loading…</p></div>
@@ -461,7 +453,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
             </div>
             {muted.length > 0 && (
               <div className="nb-muted">
-                <span>Muted: {muted.map((t) => TYPE_LABELS[t] || t).join(", ")}</span>
+                <span>Muted: {muted.map((t) => TYPE_CONFIG[t]?.label || t).join(", ")}</span>
                 <button type="button" onClick={unmuteAll}>Unmute</button>
               </div>
             )}
