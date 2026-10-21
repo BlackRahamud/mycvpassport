@@ -244,6 +244,7 @@ export default function FabAssistant() {
       seen: seenNudgesRef.current,
       openRoleCount,
       waitingCount: null, // TODO: wire waiting-candidate count when Fab has it
+      seenTick,
     }),
     [section, openRoleCount, seenTick],
   );
