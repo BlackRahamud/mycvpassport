@@ -24,7 +24,7 @@
 // plus a client-only localStorage dismissal, so no DB migration is added.
 // =============================================================
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
@@ -33,6 +33,16 @@ import PortalFeedback from "../PortalFeedback";
 import "../../../pages/hr/PostJob/postJob.css"; // :root --pj-* tokens
 import "../surfaceGlass.css"; // --surface-glass-* tokens
 import "./fab.css";
+import {
+  NUDGE_FADE_MS,
+  NUDGE_IDLE_MS,
+  NUDGE_TEASER_MS,
+  isFormFieldFocused,
+  markNudgeSeen,
+  pickFabNudge,
+  readSeenNudges,
+  resolveNudgeMessage,
+} from "./fabNudges";
 
 const SEEN_KEY = "cvp_fab_welcomed";
 const IDLE_MS = 45000;
@@ -155,9 +165,17 @@ export default function FabAssistant() {
   const [fbOpen, setFbOpen] = useState(false);
   const [hasHint, setHasHint] = useState(false);
   const [anchor, setAnchor] = useState(null); // live rect of the spotlighted rail item
+  const [openRoleCount, setOpenRoleCount] = useState(null);
+  const [activeNudge, setActiveNudge] = useState(null);
+  const [showTeaser, setShowTeaser] = useState(false);
+  const [teaserFading, setTeaserFading] = useState(false);
+  const [panelNudge, setPanelNudge] = useState(null);
+  const [seenTick, setSeenTick] = useState(0);
 
   const searchRef = useRef(null);
   const idleRef = useRef(null);
+  const seenNudgesRef = useRef(null);
+  if (seenNudgesRef.current == null) seenNudgesRef.current = readSeenNudges();
 
   // ---- First run: new user (no jobs) and not dismissed → offer the welcome.
   useEffect(() => {
@@ -184,6 +202,51 @@ export default function FabAssistant() {
     })();
     return () => { live = false; };
   }, []);
+
+  // Open-role count for the first-role nudge (same jobs filter as the jobs list).
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const { data: { user } = {} } = await supabase.auth.getUser();
+        if (!live || !user?.id) return;
+        const { count, error } = await supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("hr_id", user.id)
+          .eq("source", "hr_portal")
+          .eq("kind", "active")
+          .in("status", ["active", "published"]);
+        if (!live || error) return;
+        setOpenRoleCount(count || 0);
+      } catch { /* offline: stay quiet */ }
+    })();
+    return () => { live = false; };
+  }, []);
+
+  const persistNudge = useCallback((id) => {
+    if (!id) return;
+    seenNudgesRef.current.add(id);
+    markNudgeSeen(id);
+    setSeenTick((n) => n + 1);
+  }, []);
+
+  const clearLiveNudge = useCallback((persistId) => {
+    if (persistId) persistNudge(persistId);
+    setActiveNudge(null);
+    setShowTeaser(false);
+    setTeaserFading(false);
+  }, [persistNudge]);
+
+  const eligibleNudge = useMemo(
+    () => pickFabNudge({
+      screen: section,
+      seen: seenNudgesRef.current,
+      openRoleCount,
+      waitingCount: null, // TODO: wire waiting-candidate count when Fab has it
+    }),
+    [section, openRoleCount, seenTick],
+  );
 
   const markSeen = useCallback(() => {
     try { window.localStorage?.setItem(SEEN_KEY, "1"); } catch { /* ignore */ }
@@ -262,6 +325,62 @@ export default function FabAssistant() {
     };
   }, [mode]);
 
+  // ---- Nudge: 5s idle, never while a form field is focused or Post a job is open.
+  useEffect(() => {
+    if (!activeNudge) return;
+    if (section === "post" || activeNudge.screen !== section) {
+      setActiveNudge(null);
+      setShowTeaser(false);
+      setTeaserFading(false);
+    }
+  }, [section, activeNudge]);
+
+  useEffect(() => {
+    if (mode !== "idle" || section === "post" || !eligibleNudge || activeNudge) return undefined;
+    let t = null;
+    const arm = () => {
+      clearTimeout(t);
+      if (isFormFieldFocused()) return;
+      t = setTimeout(() => {
+        if (isFormFieldFocused() || section === "post") return;
+        setActiveNudge(eligibleNudge);
+        setShowTeaser(true);
+        setTeaserFading(false);
+      }, NUDGE_IDLE_MS);
+    };
+    arm();
+    const pause = () => { if (isFormFieldFocused()) clearTimeout(t); };
+    const evs = ["pointerdown", "keydown", "focusin", "focusout"];
+    evs.forEach((ev) => window.addEventListener(ev, ev === "focusin" ? pause : arm, true));
+    return () => {
+      clearTimeout(t);
+      evs.forEach((ev) => window.removeEventListener(ev, ev === "focusin" ? pause : arm, true));
+    };
+  }, [mode, section, eligibleNudge, activeNudge]);
+
+  useEffect(() => {
+    if (!showTeaser || !activeNudge) return undefined;
+    const fadeAt = setTimeout(() => setTeaserFading(true), NUDGE_TEASER_MS);
+    return () => clearTimeout(fadeAt);
+  }, [showTeaser, activeNudge]);
+
+  useEffect(() => {
+    if (!teaserFading) return undefined;
+    const hide = setTimeout(() => { setShowTeaser(false); setTeaserFading(false); }, NUDGE_FADE_MS);
+    return () => clearTimeout(hide);
+  }, [teaserFading]);
+
+  useLayoutEffect(() => {
+    if (mode === "panel" && activeNudge) {
+      persistNudge(activeNudge.id);
+      setPanelNudge(activeNudge);
+      setActiveNudge(null);
+      setShowTeaser(false);
+      setTeaserFading(false);
+    }
+    if (mode !== "panel") setPanelNudge(null);
+  }, [mode, activeNudge, persistNudge]);
+
   // ---- Anchor the tour/help spotlight to the LIVE rail item, tracking
   // resize and scroll so it never drifts to a fixed offset.
   const spotKey = mode === "tour" ? TOUR[tourStep]?.spot : (mode === "help" ? section : null);
@@ -306,6 +425,15 @@ export default function FabAssistant() {
 
   const tour = TOUR[tourStep] || TOUR[0];
   const isLast = tourStep >= TOUR.length - 1;
+  const nudgeLive = mode === "idle" && !!activeNudge;
+  const teaserText = resolveNudgeMessage(activeNudge, { waitingCount: null });
+  const screenSuggests = SECTION[section].sug;
+  const panelSuggests = panelNudge
+    ? [
+      ...screenSuggests.filter((s) => s.to === panelNudge.targetActionId),
+      ...screenSuggests.filter((s) => s.to !== panelNudge.targetActionId),
+    ]
+    : screenSuggests;
 
   return createPortal(
     <div className="fab-root" data-rm={reduce ? "on" : "off"}>
@@ -453,10 +581,13 @@ export default function FabAssistant() {
               <ChevronIcon />
             </button>
             <div className="fab-suggests">
-              {SECTION[section].sug.map((s) => (
+              {panelSuggests.map((s) => (
                 <button key={s.label} type="button" className="fab-suggest" onClick={() => go(s)}>
                   <span className="fab-suggest__dot" aria-hidden="true" />
                   <span className="fab-suggest__label">{s.label}</span>
+                  {panelNudge && s.to === panelNudge.targetActionId && (
+                    <span className="fab-suggest__new">New</span>
+                  )}
                   <ChevronIcon />
                 </button>
               ))}
@@ -502,11 +633,36 @@ export default function FabAssistant() {
 
       {/* ── The orb (idle / panel / help / complete) ── */}
       {showOrb && (
-        <button type="button" className="fab-orb rm" onClick={toggleOrb} aria-label="Open Fab, the portal guide">
+        <button
+          type="button"
+          className="fab-orb rm"
+          onClick={toggleOrb}
+          aria-label={nudgeLive ? "Fab has a suggestion" : "Open Fab, the portal guide"}
+        >
           <span className="fab-orb__halo rm" aria-hidden="true" />
           <SparkIcon size={26} />
-          {hasHint && <span className="fab-orb__pulse rm" aria-hidden="true" />}
+          {(hasHint || nudgeLive) && (
+            <span className={`fab-orb__pulse rm${nudgeLive ? " fab-orb__pulse--nudge" : ""}`} aria-hidden="true" />
+          )}
         </button>
+      )}
+      {showOrb && nudgeLive && showTeaser && (
+        <div
+          className={`fab-card fab-teaser rm${teaserFading ? " fab-teaser--out" : ""}`}
+          aria-live="polite"
+        >
+          <div className="fab-teaser__in">
+            <p className="fab-teaser__msg">{teaserText}</p>
+            <button
+              type="button"
+              className="fab-iconbtn"
+              onClick={() => clearLiveNudge(activeNudge.id)}
+              aria-label="Dismiss suggestion"
+            >
+              <CloseIcon />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Feedback, reused verbatim in controlled mode (affordance hidden). */}

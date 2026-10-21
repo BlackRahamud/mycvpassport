@@ -298,3 +298,41 @@
   .fab-orb, .fab-orb__halo, .fab-orb__pulse, .fab-livedot, .fab-card { animation: none !important; }
   .fab-btn, .fab-cmd, .fab-suggest, .fab-footbtn { transition: none !important; }
 }
+
+/* ── Nudge teaser + finite pulse (additive only; existing rules unchanged) ── */
+.fab-orb__pulse.fab-orb__pulse--nudge {
+  animation: fbPulse 1.8s ease-in-out 3 both;
+}
+.fab-teaser {
+  right: calc(var(--fab-right) + 72px);
+  bottom: calc(var(--fab-bottom) + 4px);
+  width: min(260px, calc(100% - 96px));
+  z-index: 4312;
+}
+.fab-teaser__in {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.fab-teaser__msg {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-text);
+  line-height: 1.4;
+}
+.fab-teaser--out {
+  animation: fbFloatIn 0.32s cubic-bezier(0.4, 0, 0.2, 1) reverse both;
+}
+.fab-suggest__new {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-primary);
+  flex-shrink: 0;
+}
