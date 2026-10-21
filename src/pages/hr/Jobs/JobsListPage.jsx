@@ -31,6 +31,7 @@ const SearchIc = () => (
     <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 );
+
 /* ───────── Helpers ───────── */
 function ts(s) {
   const t = new Date(s).getTime();
@@ -46,8 +47,6 @@ function formatSalary(j) {
   return `${cur} ${fmt(lo || hi)}`;
 }
 
-/* Map a raw application status onto a display pipeline stage (rejected and
-   unknown statuses fall through to null and don't show as a pill). */
 function pillStage(status) {
   if (["new", "submitted", "viewed"].includes(status)) return "new";
   if (["shortlisted", "ready"].includes(status)) return "review";
@@ -59,9 +58,6 @@ function pillStage(status) {
 const PILL_ORDER = ["new", "review", "interviewed", "offer", "hired"];
 const STALLED_DAYS = 14;
 
-/* Most urgent need for a job → its status signal + the one action button.
-   Priority: a waiting client verdict (purple) > hot new applicants (green) >
-   stalled with no recent activity (amber) > active (blue). */
 function jobSignal(agg, job) {
   const newCount = agg.stages.new || 0;
   const verdicts = agg.verdictAppIds.size;
@@ -79,10 +75,6 @@ function jobSignal(agg, job) {
   return { kind: "active", label: "active", action: { label: "View applicants", variant: "quiet", to: `/employer/jobs/${job.id}` } };
 }
 
-/* First-run starter (design 2a) — the "Get set up" checklist shown when a
-   brand-new account has no open jobs yet. Step 1 is the one live action;
-   steps 2 and 3 preview what unlocks next and stay dimmed until a job
-   exists. The footnote covers the CVs-but-no-role path via talent pools. */
 const SETUP_STEPS = [
   { n: 2, title: "Import the CVs you already have", body: "Up to 20 at once, parsed, scored, and ranked." },
   { n: 3, title: "Share your best candidate with your client", body: "They approve or pass with one tap." },
@@ -150,13 +142,13 @@ export default function JobsListPage() {
   const [ent, setEnt] = useState(null);
   const [upgrade, setUpgrade] = useState(false);
   const [trialEnded, setTrialEnded] = useState(false);
-  const [jobsTick, setJobsTick] = useState(0); // bump to refetch jobs (after a pool delete)
-  const [deletePool, setDeletePool] = useState(null); // { id, title } pending delete
-  const [deleteCount, setDeleteCount] = useState(null); // candidates in the pool (null = counting)
+  const [jobsTick, setJobsTick] = useState(0); 
+  const [deletePool, setDeletePool] = useState(null); 
+  const [deleteCount, setDeleteCount] = useState(null); 
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteErr, setDeleteErr] = useState(null);
-  const [agg, setAgg] = useState(null); // Map<jobId, { stages, lastTs, verdictAppIds, verdictAppId }>
-  const [mainTab, setMainTab] = useState("jobs"); // jobs | insights
+  const [agg, setAgg] = useState(null); 
+  const [mainTab, setMainTab] = useState("jobs"); 
 
   useEffect(() => {
     let live = true;
@@ -164,9 +156,6 @@ export default function JobsListPage() {
     return () => { live = false; };
   }, []);
 
-  // Pull profile.plan once we know the user — feeds the UserMenu
-  // popover's plan badge. Best-effort: a missing row falls back to
-  // "Free plan" inside UserMenu so the popover never breaks.
   useEffect(() => {
     if (!user?.id) return undefined;
     let live = true;
@@ -174,17 +163,13 @@ export default function JobsListPage() {
     return () => { live = false; };
   }, [user?.id, jobsTick]);
 
-  // Gate E1. When the trial has lapsed, present the sheet once and then
-  // never again by itself. Expiry is not a wall: the employer is already
-  // on the free account with their work intact, so nagging on every load
-  // would be punishing them for a state they are allowed to stay in.
   useEffect(() => {
     if (!ent?.loaded || ent.status !== "expired" || !user?.id) return;
     const key = `hr_trial_ended_seen:${user.id}`;
     try {
       if (localStorage.getItem(key)) return;
       localStorage.setItem(key, "1");
-    } catch { /* private mode: show it, just do not remember */ }
+    } catch { /* private mode */ }
     setTrialEnded(true);
     setUpgrade(true);
   }, [ent, user?.id]);
@@ -203,9 +188,27 @@ export default function JobsListPage() {
     return () => { live = false; };
   }, [user?.id]);
 
+  // ⚡ INSTANT CACHE-FIRST FETCH PATTERN
   useEffect(() => {
     if (!user?.id) return;
     let live = true;
+
+    const cacheKey = `cvp_jobs_cache_${user.id}_${view}`;
+
+    // 1. Read from sessionStorage instantly to paint the table immediately
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          setJobs(parsed);
+        }
+      }
+    } catch (e) {
+      /* private mode fallback */
+    }
+
+    // 2. Fetch fresh data from Supabase in background
     (async () => {
       try {
         let q = supabase
@@ -215,26 +218,33 @@ export default function JobsListPage() {
           .eq("hr_id", user.id)
           .order("posted_at", { ascending: false })
           .limit(200);
-        // Pools live in their own view; the open/past triage shows only active
-        // mandates, so a pool never reads as an active job in the table.
+
         q = view === "pools"
           ? q.eq("kind", "pool")
           : q.eq("kind", "active").in("status", view === "open" ? ["active", "published"] : ["closed"]);
+
         const { data, error: e } = await q;
         if (!live) return;
         if (e) throw e;
-        setJobs(data || []);
+
+        const freshJobs = data || [];
+        setJobs(freshJobs);
+
+        // Update session cache
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(freshJobs));
+        } catch (e) {}
+
       } catch (e) {
         if (!live) return;
-        setJobs([]);
+        if (!sessionStorage.getItem(cacheKey)) setJobs([]);
         setError(e.message || "Couldn't load jobs");
       }
     })();
+
     return () => { live = false; };
   }, [view, user?.id, jobsTick]);
 
-  // Count candidates in a pool, then open the delete confirm. Never a silent
-  // cascade: deleting a job ON DELETE CASCADEs its applications.
   const openDeletePool = useCallback(async (job) => {
     setDeletePool(job); setDeleteCount(null); setDeleteErr(null);
     try {
@@ -249,7 +259,6 @@ export default function JobsListPage() {
     if (!deletePool || deleteBusy || !user?.id) return;
     setDeleteBusy(true); setDeleteErr(null);
     try {
-      // kind = 'pool' guard means this action can never delete an active mandate.
       const { error: e } = await supabase
         .from("jobs").delete()
         .eq("id", deletePool.id).eq("hr_id", user.id).eq("kind", "pool");
@@ -263,9 +272,6 @@ export default function JobsListPage() {
     }
   }, [deletePool, deleteBusy, user?.id]);
 
-  // Per-job aggregates for the triage rows: pipeline stage counts, last
-  // activity, and waiting client verdicts. One applications read + one
-  // share_feedback read (RLS-scoped), aggregated client-side.
   useEffect(() => {
     if (!user?.id) return;
     let live = true;
@@ -290,7 +296,6 @@ export default function JobsListPage() {
         const t = ts(a.applied_at);
         if (t > x.lastTs) x.lastTs = t;
       });
-      // fbRes is newest-first, so the first verdict seen per job is the most recent.
       (fbRes.data || []).forEach((r) => {
         const appId = r.candidate_shares?.application_id;
         const jid = appId ? appJob.get(appId) : null;
@@ -319,18 +324,12 @@ export default function JobsListPage() {
     return meta.full_name || meta.name || user?.email?.split("@")[0] || "Sign in";
   }, [user]);
 
-  // Greeting header (design 2a). First run (zero open jobs, nothing searched,
-  // no load error) swaps the time greeting for the Welcome variant that pairs
-  // with the setup checklist below. While jobs are still loading we stay on
-  // the time greeting so the header never flashes between the two.
   const firstRun = jobs !== null && jobs.length === 0 && view === "open" && !search.trim() && !error;
   const firstName = (profile?.full_name || "").trim().split(/\s+/)[0] || "";
   const greeting = useMemo(() => {
     const now = new Date();
     const h = now.getHours();
     const part = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
-    // Composed by hand: ICU builds vary on whether en-GB includes the comma,
-    // and the 2a mock wants "Thursday, 10 July" everywhere.
     const dateLine = `${now.toLocaleDateString("en-GB", { weekday: "long" })}, ${now.getDate()} ${now.toLocaleDateString("en-GB", { month: "long" })}`;
     if (firstRun) {
       return {
@@ -384,9 +383,6 @@ export default function JobsListPage() {
           </p>
         </motion.div>
 
-        {/* Gate E2. The cap is enforced by the 046 trigger; this is the
-            designed state for it. Not blocking: the jobs below stay live. */}
-        {/* D2. Fires from the real days left, never a signup date. */}
         <TrialNudge
           ent={ent}
           onUpgrade={() => setUpgrade(true)}
@@ -428,8 +424,6 @@ export default function JobsListPage() {
         <>
         <AttentionPanel user={user} />
 
-        {/* Interviews today: the flight board (renders nothing when there
-            is nothing scheduled and nobody waiting at To interview). */}
         <InterviewsToday user={user} />
 
         <motion.div
@@ -497,8 +491,7 @@ export default function JobsListPage() {
           ) : view === "past" ? (
             <div className="hjl-empty">
               <p className="hjl-empty__title">No past jobs</p>
-              <p className="hjl-empty__body">
-                Closed roles you've previously posted will appear here.
+              <p className="hjl-empty__body">Closed roles you've previously posted will appear here.
                 {error && <span style={{ display: "block", marginTop: 8, fontSize: 12, color: "var(--pj-muted)" }}>({error})</span>}
               </p>
             </div>
@@ -583,7 +576,6 @@ export default function JobsListPage() {
         </AnimatePresence>
       </main>
 
-      {/* Delete-pool confirm — never a silent cascade */}
       <AnimatePresence>
         {deletePool && (
           <motion.div
@@ -626,7 +618,8 @@ export default function JobsListPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    <FoundationUpgradeSheet
+
+      <FoundationUpgradeSheet
         open={upgrade}
         onClose={() => { setUpgrade(false); setTrialEnded(false); }}
         user={user}
