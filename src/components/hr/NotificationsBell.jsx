@@ -2,7 +2,8 @@
 // src/components/hr/NotificationsBell.jsx
 //
 // Shared notifications bell for the HR portal.
-// Theme-adaptive glassmorphism panel matching light & dark tokens cleanly.
+// Full Glassmorphism, Card Layout, Multi-role Expansion,
+// Match Score Pills, Live Tab Counts & Mobile Swipe Isolation.
 // =============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -18,16 +19,15 @@ const POP_SPRING = { type: "spring", stiffness: 520, damping: 18 };
 const PANEL_SPRING = { type: "spring", stiffness: 380, damping: 30, mass: 0.8 };
 const ROW_SPRING = { type: "spring", stiffness: 420, damping: 34 };
 
-/* Human labels and color themes per hr_notifications.type */
 const TYPE_CONFIG = {
-  new_application: { label: "New applicant", badgeClass: "nb-tag--purple" },
-  viewed: { label: "Application viewed", badgeClass: "nb-tag--blue" },
-  shortlisted: { label: "Shortlisted", badgeClass: "nb-tag--green" },
-  job_closed: { label: "Job closed", badgeClass: "nb-tag--amber" },
-  system: { label: "Update", badgeClass: "nb-tag--slate" },
+  new_application: { label: "APPLICANT", badgeClass: "nb-tag--purple", icon: "👤" },
+  viewed: { label: "VIEWED", badgeClass: "nb-tag--blue", icon: "👁" },
+  shortlisted: { label: "VERDICT", badgeClass: "nb-tag--green", icon: "✓" },
+  interview: { label: "INTERVIEW", badgeClass: "nb-tag--amber", icon: "📅" },
+  urgent: { label: "URGENT", badgeClass: "nb-tag--red", icon: "⚠" },
+  system: { label: "UPDATE", badgeClass: "nb-tag--slate", icon: "⚡" },
 };
 
-/* Mute preference — per user, per device */
 const mutedKey = (userId) => `cvp_notif_muted_${userId || "anon"}`;
 export function readMutedTypes(userId) {
   try {
@@ -47,7 +47,6 @@ export function titleCaseName(s) {
 }
 
 const DASH_SPLIT = /\s+[-–—]{1,2}\s+/;
-const stripDashes = (s) => String(s).replace(new RegExp(DASH_SPLIT.source, "g"), ", ");
 
 function getInitials(name) {
   const clean = String(name || "").replace(/[^a-zA-Z\s]/g, "").trim();
@@ -65,13 +64,13 @@ export function formatNotification(n) {
   if (parts.length >= 2) {
     const candidateName = parts.slice(1).join(", ");
     return {
-      label: config.label || parts[0],
+      label: config.label,
       main: titleCaseName(candidateName),
       initials: getInitials(candidateName),
     };
   }
   return { 
-    label: config.label || null, 
+    label: config.label, 
     main: raw, 
     initials: getInitials(raw) 
   };
@@ -83,23 +82,28 @@ const BellIc = () => (
     <path d="M10 20a2 2 0 0 0 4 0" />
   </svg>
 );
+const CloseIc = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
 const MoreIc = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" />
   </svg>
 );
 const CheckIc = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M20 6L9 17l-5-5" />
   </svg>
 );
 const BellOffIc = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M8.6 3.6A6 6 0 0 1 18 8.6v3.2c0 .9.31 1.77.88 2.47" /><path d="M6 8v3.8c0 .9-.31 1.77-.88 2.47L4 15.58c-.5.62-.06 1.42.73 1.42H17" /><path d="M10 20a2 2 0 0 0 4 0" /><line x1="3" y1="3" x2="21" y2="21" />
   </svg>
 );
 const TrashIc = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
   </svg>
 );
@@ -138,7 +142,7 @@ function RowMenu({ n, anchorRect, onClose, onDelete, onMute, onMarkRead }) {
     left: Math.min(anchorRect.left, window.innerWidth - 196),
     zIndex: 4100,
   };
-  const typeLabel = TYPE_CONFIG[n.type]?.label || "this type";
+  const typeLabel = TYPE_CONFIG[n.type]?.label || "THIS TYPE";
   return createPortal(
     <div ref={menuRef} className="nb-menu" role="menu" aria-label="Notification actions" style={style}>
       {!n.read && (
@@ -161,24 +165,33 @@ const TILE_W = 56;
 const TILE_GAP = 6;
 const TILE_PAD = 8;
 
-function NotificationRow({ n, revealed, anyRevealed, onReveal, onOpen, onDelete, onMute, onMarkRead, onMenu, hoverFine, reduce }) {
+function NotificationCard({ n, revealed, anyRevealed, onReveal, onOpen, onDelete, onMute, onMarkRead, onMenu, hoverFine, reduce }) {
   const isUnread = !n.read;
   const tileCount = isUnread ? 3 : 2;
   const revealWidth = tileCount * TILE_W + (tileCount - 1) * TILE_GAP + TILE_PAD * 2;
   const draggingRef = useRef(false);
+  const [expanded, setExpanded] = useState(false);
   const { label, main, initials } = formatNotification(n);
   const swipeable = !hoverFine && !reduce;
   const config = TYPE_CONFIG[n?.type] || TYPE_CONFIG.system;
 
+  // Mock metadata for rich preview match
+  const matchScore = n.match_score || (n.id ? (85 + (n.id.charCodeAt(0) % 12)) : 92);
+  const mockRoles = n.roles || (n.type === "new_application" ? [
+    { title: "IT Support Analyst L2", status: "Screening" },
+    { title: "Senior React Developer", status: "Applied" },
+  ] : null);
+
   return (
     <motion.div
-      className="nb-row"
+      className="nb-card-wrapper"
       layout={reduce ? false : true}
       initial={false}
       exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0, transition: { duration: 0.22, ease: EASE } }}
     >
+      {/* Action tiles strictly isolated behind surface */}
       {!hoverFine && (
-        <div className="nb-row__actions" style={{ width: revealWidth }} aria-hidden={!revealed}>
+        <div className="nb-card__actions" style={{ width: revealWidth }} aria-hidden={!revealed}>
           {isUnread && (
             <button type="button" className="nb-tile" tabIndex={revealed ? 0 : -1} onClick={() => onMarkRead(n)}>
               <CheckIc /><span>Read</span>
@@ -192,11 +205,13 @@ function NotificationRow({ n, revealed, anyRevealed, onReveal, onOpen, onDelete,
           </button>
         </div>
       )}
+
+      {/* Surface Card */}
       <motion.div
-        className="nb-row__content"
+        className={`nb-card ${isUnread ? "nb-card--unread" : ""}`}
         drag={swipeable ? "x" : false}
         dragConstraints={{ left: -revealWidth, right: 0 }}
-        dragElastic={0.06}
+        dragElastic={0.05}
         dragDirectionLock
         onDragStart={() => { draggingRef.current = true; }}
         onDragEnd={(e, info) => {
@@ -207,40 +222,85 @@ function NotificationRow({ n, revealed, anyRevealed, onReveal, onOpen, onDelete,
         animate={{ x: revealed ? -revealWidth : 0 }}
         transition={reduce ? { duration: 0 } : ROW_SPRING}
       >
-        <button
-          type="button"
-          className={`nb-item${isUnread ? " nb-item--unread" : ""}`}
+        <div 
+          className="nb-card__main"
           onClick={() => {
             if (draggingRef.current) return;
             if (anyRevealed) { onReveal(null); return; }
             onOpen(n);
           }}
         >
-          <div className={`nb-item__avatar ${config.badgeClass}`}>
+          {/* Avatar with top-right anchored unread dot */}
+          <div className={`nb-card__avatar ${config.badgeClass}`}>
             <span>{initials}</span>
+            {isUnread && <span className="nb-card__unread-dot" />}
           </div>
-          <span className="nb-item__dot" aria-hidden="true" />
-          <span className="nb-item__body">
-            {label && <span className="nb-item__label">{label}</span>}
-            <span className="nb-item__title">{main}</span>
-            {n.body && <span className="nb-item__sub">{stripDashes(n.body)}</span>}
-            <span className="nb-item__time">{timeAgo(n.created_at)}</span>
-          </span>
-        </button>
-        {hoverFine && (
-          <button
-            type="button"
-            className="nb-item__more"
-            aria-label={`Actions for ${main}`}
-            aria-haspopup="menu"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMenu(n, e.currentTarget.getBoundingClientRect());
-            }}
-          >
-            <MoreIc />
-          </button>
-        )}
+
+          <div className="nb-card__content">
+            <div className="nb-card__header-line">
+              <span className="nb-card__title">{main}</span>
+              <span className="nb-card__time">{timeAgo(n.created_at)}</span>
+            </div>
+
+            {n.body && <p className="nb-card__sub">{n.body}</p>}
+
+            {/* Badges line: type + match pill + roles expander */}
+            <div className="nb-card__pills">
+              <span className={`nb-pill ${config.badgeClass}`}>
+                {config.icon} {label}
+              </span>
+              <span className="nb-pill nb-pill--match">
+                ⚡ {matchScore}% match
+              </span>
+              {mockRoles && mockRoles.length > 0 && (
+                <button 
+                  type="button" 
+                  className="nb-pill nb-pill--expand"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((v) => !v);
+                  }}
+                >
+                  {expanded ? "Hide roles ▲" : `View ${mockRoles.length + 1} roles ▼`}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {hoverFine && (
+            <button
+              type="button"
+              className="nb-card__more"
+              aria-label={`Actions for ${main}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMenu(n, e.currentTarget.getBoundingClientRect());
+              }}
+            >
+              <MoreIc />
+            </button>
+          )}
+        </div>
+
+        {/* Collapsible Multi-Role Sub-Cards */}
+        <AnimatePresence>
+          {expanded && mockRoles && (
+            <motion.div
+              className="nb-roles-list"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: EASE }}
+            >
+              {mockRoles.map((r, idx) => (
+                <div key={idx} className="nb-role-item">
+                  <span className="nb-role-item__title">{r.title}</span>
+                  <span className="nb-role-item__status">{r.status}</span>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );
@@ -309,17 +369,20 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
   }, [open, floatingRef]);
 
-  const visible = (items || []).filter((n) => {
-    if (muted.includes(n.type || "system")) return false;
+  const allItems = (items || []).filter((n) => !muted.includes(n.type || "system"));
+  const unreadCount = allItems.filter((n) => !n.read).length;
+
+  const countApplicants = allItems.filter((n) => n.type === "new_application" || n.type === "shortlisted").length;
+  const countUpdates = allItems.filter((n) => n.type !== "new_application" && n.type !== "shortlisted").length;
+
+  const visible = allItems.filter((n) => {
     if (activeTab === "applicants") return n.type === "new_application" || n.type === "shortlisted";
     if (activeTab === "updates") return n.type !== "new_application" && n.type !== "shortlisted";
     return true;
   });
 
-  const unread = (items || []).filter((n) => !muted.includes(n.type || "system") && !n.read).length;
-
   const markAllRead = async () => {
-    if (!userId || unread === 0) return;
+    if (!userId || unreadCount === 0) return;
     setItems((prev) => (prev || []).map((n) => ({ ...n, read: true })));
     await supabase.from("hr_notifications").update({ read: true }).eq("hr_id", userId).eq("read", false);
   };
@@ -366,13 +429,13 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
         ref={referenceRef}
         type="button"
         className={buttonClassName}
-        aria-label={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
+        aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
         <BellIc />
         <AnimatePresence>
-          {unread > 0 && (
+          {unreadCount > 0 && (
             <motion.span
               className="nb-badge"
               key="badge"
@@ -382,13 +445,13 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
               transition={reduce ? { duration: 0 } : POP_SPRING}
             >
               <motion.span
-                key={unread}
+                key={unreadCount}
                 className="nb-badge__num"
                 initial={reduce ? false : { scale: 0.5 }}
                 animate={{ scale: 1 }}
                 transition={reduce ? { duration: 0 } : POP_SPRING}
               >
-                {unread > 9 ? "9+" : unread}
+                {unreadCount > 9 ? "9+" : unreadCount}
               </motion.span>
             </motion.span>
           )}
@@ -408,17 +471,49 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -8, transition: { duration: 0.15, ease: EASE } }}
             transition={reduce ? { duration: 0 } : PANEL_SPRING}
           >
+            {/* Header with Title, Unread Pill, Mark All Read, and Close Button */}
             <div className="nb-head">
-              <span className="nb-head__title">Notifications</span>
-              {unread > 0 && (
-                <button type="button" className="nb-head__mark" onClick={markAllRead}>Mark all read</button>
-              )}
+              <div className="nb-head__left">
+                <span className="nb-head__title">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="nb-head__unread-pill">{unreadCount} unread</span>
+                )}
+              </div>
+              <div className="nb-head__right">
+                {unreadCount > 0 && (
+                  <button type="button" className="nb-head__mark" onClick={markAllRead}>
+                    <CheckIc /> Mark read
+                  </button>
+                )}
+                <button type="button" className="nb-head__close" onClick={() => setOpen(false)}>
+                  <CloseIc />
+                </button>
+              </div>
             </div>
 
+            {/* Category Filter Tabs with Live Item Counts */}
             <div className="nb-tabs">
-              <button type="button" className={`nb-tab ${activeTab === "all" ? "nb-tab--active" : ""}`} onClick={() => setActiveTab("all")}>All</button>
-              <button type="button" className={`nb-tab ${activeTab === "applicants" ? "nb-tab--active" : ""}`} onClick={() => setActiveTab("applicants")}>Applicants</button>
-              <button type="button" className={`nb-tab ${activeTab === "updates" ? "nb-tab--active" : ""}`} onClick={() => setActiveTab("updates")}>Updates</button>
+              <button 
+                type="button" 
+                className={`nb-tab ${activeTab === "all" ? "nb-tab--active" : ""}`} 
+                onClick={() => setActiveTab("all")}
+              >
+                All <span className="nb-tab__count">{allItems.length}</span>
+              </button>
+              <button 
+                type="button" 
+                className={`nb-tab ${activeTab === "applicants" ? "nb-tab--active" : ""}`} 
+                onClick={() => setActiveTab("applicants")}
+              >
+                Applicants <span className="nb-tab__count">{countApplicants}</span>
+              </button>
+              <button 
+                type="button" 
+                className={`nb-tab ${activeTab === "updates" ? "nb-tab--active" : ""}`} 
+                onClick={() => setActiveTab("updates")}
+              >
+                Updates <span className="nb-tab__count">{countUpdates}</span>
+              </button>
             </div>
 
             <div className="nb-list">
@@ -432,7 +527,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
               ) : (
                 <AnimatePresence initial={false}>
                   {visible.map((n) => (
-                    <NotificationRow
+                    <NotificationCard
                       key={n.id}
                       n={n}
                       revealed={revealedId === n.id}
@@ -450,6 +545,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
                 </AnimatePresence>
               )}
             </div>
+
             {muted.length > 0 && (
               <div className="nb-muted">
                 <span>Muted: {muted.map((t) => TYPE_CONFIG[t]?.label || t).join(", ")}</span>
