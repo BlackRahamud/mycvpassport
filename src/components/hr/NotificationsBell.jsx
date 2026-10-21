@@ -2,8 +2,7 @@
 // src/components/hr/NotificationsBell.jsx
 //
 // Shared notifications bell for the HR portal.
-// Fully integrated with Glassmorphism, Category Filter Tabs, 
-// Candidate Initials/Avatars, and smooth spring animations.
+// Theme-adaptive glassmorphism panel matching light & dark tokens cleanly.
 // =============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -401,7 +400,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
         {open && (
           <motion.div
             ref={floatingRef}
-            className="nb-pop nb-pop--glass"
+            className="nb-pop"
             role="menu"
             style={{ ...floatingStyle, transformOrigin: "top right" }}
             initial={reduce ? false : { opacity: 0, scale: 0.95, y: -10 }}
