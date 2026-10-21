@@ -34,7 +34,7 @@
   .nb-pop {
     width: 340px;
     max-width: calc(100vw - 32px);
-    background: rgba(255, 255, 255, 0.92) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(16px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
@@ -96,7 +96,7 @@
   
   .nb-list { max-height: 360px; overflow-y: auto; overflow-x: hidden; }
   
-  /* ── Row Styling ── */
+  /* ── Row Styling & Swipe Architecture ── */
   .nb-row {
     position: relative;
     overflow: hidden;
@@ -106,12 +106,15 @@
   
   .nb-row__actions {
     position: absolute;
-    inset: 0 0 0 auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
     gap: 6px;
     padding: 8px;
     box-sizing: border-box;
+    z-index: 1;
   }
   .nb-tile {
     display: flex;
@@ -136,8 +139,9 @@
   
   .nb-row__content {
     position: relative;
-    background: transparent;
+    background: #ffffff; /* Solid white background so actions stay hidden underneath */
     touch-action: pan-y;
+    z-index: 2;
   }
   
   .nb-item {
@@ -155,7 +159,7 @@
     transition: background 140ms var(--pj-ease);
   }
   .nb-item:hover { background: rgba(0, 0, 0, 0.03) !important; }
-  .nb-item--unread { background: rgba(124, 58, 237, 0.04) !important; }
+  .nb-item--unread { background: rgba(124, 58, 237, 0.03) !important; }
   
   /* Candidate Initials Avatars */
   .nb-item__avatar {
