@@ -10,12 +10,13 @@ import LandingPage from "./LandingPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 import LaunchOfferMount from "./components/launch/LaunchOfferMount";
+import { trackPageView } from "./lib/metaPixel";
 
 // Route-level code splitting. Every page below the homepage is loaded
 // on-demand so visitors who only see the landing page never download
 // the builder, dashboard, admin, scout, transform, blog etc.
 const PricingPage          = lazy(() => import(/* webpackChunkName: "pricing" */     "./pages/PricingPage"));
-const AdminPanelV3         = lazy(() => import(/* webpackChunkName: "admin" */       "./AdminPanelV3"));
+const AdminPanelV3         = lazy(() => import(/* webpackChunkName: "admin" */      "./AdminPanelV3"));
 const AuthPage             = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/AuthPage"));
 const AuthCallback         = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/AuthCallback"));
 const CoverLetterPage      = lazy(() => import(/* webpackChunkName: "cover-letter" */ "./pages/CoverLetterPage"));
@@ -75,6 +76,27 @@ const GulfSalaryPage       = lazy(() => import(/* webpackChunkName: "gulf-salary
 const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
 };
+
+/**
+ * Route tracker for SPA Meta Pixel PageViews.
+ * Listens to location.pathname and cvp:consent events, gating execution until authReady.
+ */
+function RouteTracker({ email, ready }) {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!ready) return;
+    trackPageView(email, location.pathname);
+  }, [location.pathname, email, ready]);
+
+  useEffect(() => {
+    const onConsent = () => trackPageView(email, window.location.pathname);
+    window.addEventListener("cvp:consent", onConsent);
+    return () => window.removeEventListener("cvp:consent", onConsent);
+  }, [email]);
+
+  return null;
+}
 
 /** /hr/jobs/123 → /employer/jobs/123 — old portal bookmarks survive the rename. */
 function HrLegacyRedirect() {
@@ -184,6 +206,7 @@ export default function App() {
 
   return (
     <>
+      <RouteTracker email={user?.email} ready={authReady} />
       <PostAuthIntermission active={postAuthIntermission} />
     <Suspense fallback={<RouteFallback />}>
     <Routes>
@@ -497,8 +520,7 @@ function RouteFallback() {
  */
 function PostAuthIntermission({ active }) {
   if (!active) return null;
-  return (
-    <>
+  return (    <>
       <style>{`
         @property --ats-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
         @keyframes ats-spin-border { to { --ats-angle: 360deg; } }
