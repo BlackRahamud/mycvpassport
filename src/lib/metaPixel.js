@@ -97,3 +97,15 @@ export const trackCustomEvent = (eventName, data = {}, userEmail = null) => {
     window.posthog.capture(eventName, data);
   }
 };
+
+/**
+ * Tracks Meta standard events (e.g. Lead, InitiateCheckout) and mirrors to PostHog if available.
+ */
+export const trackStandardEvent = (eventName, data = {}, userEmail = null) => {
+  if (isFounder(userEmail)) return;
+  if (!hasUserConsent()) return;
+  initMetaPixel(userEmail);
+  if (!window.fbq) return;
+  window.fbq('track', eventName, data);
+  if (window.posthog) window.posthog.capture(eventName, data);
+};

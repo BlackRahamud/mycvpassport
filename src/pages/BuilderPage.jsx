@@ -59,6 +59,7 @@ import { getTheme, setTheme } from "../lib/theme";
 import BrandLockup from "../components/BrandLockup";
 import { normalizeAtsGaps, gapsFromLegacyParam, partitionGapsByResolution } from "../lib/ats/atsGaps";
 import { logEvent } from "../lib/analytics/logEvent";
+import { trackStandardEvent, trackCustomEvent } from '../lib/metaPixel';
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
   TEMPLATES,
@@ -3420,6 +3421,34 @@ function ResumeBuilder({
   // paths must use `setResumeAsLoad` so initial CV injection (e.g. from
   // /transform/success → "Edit in Builder") doesn't register as an edit.
   const [userHasEdited, setUserHasEdited] = useState(false);
+  // Meta Pixel tracking refs (BuilderAbandoned / Lead)
+  const hasStartedRef = useRef(false);
+  const completedRef = useRef(false);
+  const abandonFiredRef = useRef(false);
+  const leadFiredRef = useRef(false);
+  const stepRef = useRef("content");
+  const emailRef = useRef(user?.email);
+  stepRef.current = builderTab === "content" && openSection ? `content:${openSection}` : builderTab;
+  emailRef.current = user?.email;
+  useEffect(() => {
+    if (leadFiredRef.current || !userHasEdited) return;
+    const em = String(resume.email || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return;
+    leadFiredRef.current = true;
+    trackStandardEvent("Lead", { content_name: "builder_contact" }, user?.email);
+  }, [userHasEdited, resume.email, user?.email]);
+  useEffect(() => {
+    const fireAbandoned = () => {
+      if (abandonFiredRef.current || !hasStartedRef.current || completedRef.current) return;
+      abandonFiredRef.current = true;
+      trackCustomEvent("BuilderAbandoned", { step: stepRef.current }, emailRef.current);
+    };
+    window.addEventListener("pagehide", fireAbandoned);
+    return () => {
+      window.removeEventListener("pagehide", fireAbandoned);
+      fireAbandoned();
+    };
+  }, []);
   // Tier 2: undo/redo stack. Single state object {entries, index} so push
   // updates are atomic. Cap at 50 to bound memory; oldest entry drops
   // when full. Initialised with the current resume as the first entry.
@@ -3443,6 +3472,7 @@ function ResumeBuilder({
       return next;
     });
     setUserHasEdited(true);
+    hasStartedRef.current = true;
   }, []);
   // Data-injection setter: skips the dirty flag and re-baselines the
   // Discard target so a future Discard reverts to the just-loaded state.
@@ -3553,6 +3583,7 @@ function ResumeBuilder({
   );
   const handleCvImported = useCallback(
     (cvData, filename) => {
+      hasStartedRef.current = true;
       const empty = isCvDataEmptyForTemplateApply(resume);
       if (!empty) {
         setCvImportPending({ cvData, filename });
@@ -4339,6 +4370,7 @@ function ResumeBuilder({
       // unchanged). Fire on the real block so we can measure the ceiling.
       logEvent("download_blocked", { reason: "limit_reached" });
       logEvent("launch_offer_limit_hit", { type: "download" });
+      completedRef.current = true;
       navigate("/pricing");
       return;
     }
@@ -4355,6 +4387,7 @@ function ResumeBuilder({
           maxPages: pdfTargetPages,
           templateId: selectedTemplate?.id,
         });
+        completedRef.current = true;
         writeFabMemory({
           lastAction: 'downloaded',
           lastActionAt: new Date().toISOString(),
@@ -4372,6 +4405,7 @@ function ResumeBuilder({
         if (/unlock|paid pass|free download used|no_credit/i.test(e?.message || "")) {
           refreshDlGate();
           dispatch({ type: 'RESET' });
+          completedRef.current = true;
           navigate("/pricing");
           return;
         }
@@ -6245,6 +6279,7 @@ function ResumeBuilder({
                   type="button"
                   onClick={() => {
                     setMenuDrawerOpen(false);
+                    completedRef.current = true;
                     navigate("/pricing");
                   }}
                   style={{
