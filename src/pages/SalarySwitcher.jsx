@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { WiseBanner } from "../components/AffiliateCard";
 
 const ROLES = [
   { id: "se", icon: "\u2699", name: "Software Engineer", jr: [60000, 8000],  mid: [180000, 18000], sr: [350000, 35000] },
@@ -487,6 +488,7 @@ export default function SalarySwitcher() {
                   </svg>
                   Share your worth
                 </button>
+                <WiseBanner sourceLocation="salary_switcher" />
               </div>
             )}
 
