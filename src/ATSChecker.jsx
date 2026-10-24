@@ -1529,7 +1529,7 @@ export default function ATSChecker({
                   } else if (onNavigateToContent) {
                     onNavigateToContent();
                   } else {
-                    navigate('/dashboard');
+                    navigate('/builder');
                   }
                 }}
                 disabled={hasCv && downloadStateProp.status !== 'idle'}
@@ -1546,7 +1546,7 @@ export default function ATSChecker({
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                <span>{hasCv ? (downloadStateProp.status === 'generating' ? 'Generating your CV...' : 'Download CV') : 'Start Building'}</span>
+                <span>{hasCv ? (downloadStateProp.status === 'generating' ? 'Generating your CV...' : 'Download CV') : 'Fix your CV in the builder \u2014 free'}</span>
               </button>
             </div>
             <div style={{ fontSize: 11, color: '#333', textAlign: 'center', marginTop: 10 }}>
