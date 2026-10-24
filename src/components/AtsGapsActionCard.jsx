@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { getDisplayPrice } from "../config/tierConfig";
 
 // Inline SVG micro-icons drawn for this card. No glyph fonts, no emoji.
 function PlusIcon({ size = 11, color = "currentColor" }) {
@@ -462,7 +463,7 @@ export default function AtsGapsActionCard({
             e.currentTarget.style.color = "#A0A0A0";
           }}
         >
-          Or fix all {gaps.length} with Active Hunter — AED 29/mo
+          Or fix all {gaps.length} with Active Hunter — AED {getDisplayPrice("active_hunter", "AED")} for 30 days
         </button>
       )}
 
