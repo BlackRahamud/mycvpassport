@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router-dom";
 import { getPaymentLink } from "./utils/paywall";
+import { usePaymentGeo } from "./hooks/usePaymentGeo";
 import { getDisplayPrice, A_LA_CARTE } from "./config/tierConfig";
 
 function FeatureItem({ text }) {
@@ -27,6 +29,8 @@ function FeatureItem({ text }) {
 }
 
 export default function UpgradeModal({ isOpen, onClose, feature }) {
+  const navigate = useNavigate();
+  const geo = usePaymentGeo();
   if (!isOpen) return null;
 
   const isAts = feature === "ats";
@@ -75,12 +79,36 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
   // one number and take another. They also implied a recurring
   // subscription; Active Hunter is a one time 30 day pass, so the copy
   // now says what it is.
-  const hunterPrice = getDisplayPrice("active_hunter", "AED");
+  // Geo decides the offer. India: Express Pass (one time, permanent, from
+  // config). Gulf: Active Hunter 30 day pass. The label always names the
+  // exact product /pricing will charge for, so button and charge match.
+  // Until geo resolves the label carries no number rather than a wrong one.
+  const isCoverLetter = feature === "coverLetter";
+  const isIndia = geo.currency !== "AED";
+  const expressINR = getDisplayPrice("express_pass", "INR");
+  const hunterAED = getDisplayPrice("active_hunter", "AED");
   const coverLetterPrice = A_LA_CARTE.coverLetter?.prices?.AED;
 
-  const ctaLabel = feature === "coverLetter"
+  const ctaLabel = isCoverLetter
     ? `Get one cover letter, AED ${coverLetterPrice}`
-    : `Unlock pro for 30 days, AED ${hunterPrice}`;
+    : !geo.resolved
+      ? "Unlock pro"
+      : isIndia
+        ? `Get Express Pass, ₹${expressINR} one time`
+        : `Unlock pro for 30 days, AED ${hunterAED}`;
+
+  const handleCta = async () => {
+    if (isCoverLetter) {
+      // Cover letter is an AED-only a-la-carte item, so it keeps the Ziina path.
+      const url = await getPaymentLink(paymentFeature);
+      if (url) window.location.href = url;
+      return;
+    }
+    // /pricing owns auth, INR/Razorpay vs AED/Ziina routing and analytics,
+    // and resumes checkout on arrival.
+    onClose?.();
+    navigate(isIndia ? "/pricing?resume=express" : "/pricing?resume=hunter");
+  };
 
   return (
     <div
@@ -141,10 +169,7 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
             }} />
             <button
               type="button"
-              onClick={async () => {
-                const url = await getPaymentLink(paymentFeature);
-                if (url) window.location.href = url;
-              }}
+              onClick={handleCta}
               style={{
                 display: "block",
                 width: "100%",

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { getDisplayPrice } from "../config/tierConfig";
+import { usePaymentGeo } from "../hooks/usePaymentGeo";
 
 // Inline SVG micro-icons drawn for this card. No glyph fonts, no emoji.
 function PlusIcon({ size = 11, color = "currentColor" }) {
@@ -59,6 +60,9 @@ export default function AtsGapsActionCard({
 }) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
+  // Same IP-geo source as /pricing, so this card never quotes a currency
+  // the visitor will not be charged in. Called before the early return.
+  const geo = usePaymentGeo();
 
   const gaps = (Array.isArray(visibilityBoosters) ? visibilityBoosters : []).slice(0, 3);
   const projected = Math.min(score + gaps.length * 10, 95);
@@ -463,7 +467,12 @@ export default function AtsGapsActionCard({
             e.currentTarget.style.color = "#A0A0A0";
           }}
         >
-          Or fix all {gaps.length} with Active Hunter — AED {getDisplayPrice("active_hunter", "AED")} for 30 days
+          Or fix all {gaps.length} with{" "}
+          {!geo.resolved
+            ? "a paid plan"
+            : geo.currency === "AED"
+              ? `Active Hunter — AED ${getDisplayPrice("active_hunter", "AED")} for 30 days`
+              : `Express Pass — ₹${getDisplayPrice("express_pass", "INR")}, one time`}
         </button>
       )}
 
