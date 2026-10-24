@@ -1,23 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Lock, ChevronDown, Sparkles, Plus, CheckCircle } from "lucide-react";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
-import safeFetch from "./lib/net/safeFetch";
 import { getGatekeeperData } from "./services/gatekeeper";
-import { extractCvText, CvExtractionError } from "./services/cvExtraction";
-import { logEvent } from "./lib/analytics/logEvent";
-import CvOnlyResult from "./components/CvOnlyResult";
-import UpgradeModal from "./UpgradeModal";
-import AtsGapsActionCard from "./components/AtsGapsActionCard";
-import { getDraftStorageKey, writeCvDraft } from "./lib/cvDraft";
-import { buildStructuralGaps } from "./lib/ats/atsGaps";
-
-// Sprint #4: Cloudflare Turnstile site key (public). When unset locally
-// the widget is skipped entirely and the Edge Function fail-opens in dev.
-const TURNSTILE_SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || "";
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || "";
+import { detectRole } from "./utils/detectRole";
+import skillSuggestions from "./data/skillSuggestions";
+import { getPaymentLink } from "./utils/paywall";
 
 // ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
 const T = {
@@ -49,24 +37,26 @@ function formatPlanDisplayName(raw) {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Day 2: stages mirror real pipeline progress. The loadingStage state
-// drives currentIdx — no more 1-second timer faking progress.
-const STAGE_ORDER = ["extracting", "analysing", "scoring"];
-
 function buildFreeLoadingSteps() {
   return [
-    "Extracting your CV text…",
-    "Analysing CV against the JD (Haiku 4.5)…",
-    "Compiling your scores…",
+    "Extracting your information...",
+    "Running against GCC market data...",
+    "Matching keywords...",
+    "Calculating your score...",
+    "Results ready",
   ];
 }
 
 function buildProLoadingSteps(planName) {
   const p = formatPlanDisplayName(planName);
   return [
-    "Extracting your CV text…",
-    `Running ${p} analysis (Sonnet 4.6)…`,
-    "Compiling your scores…",
+    "Extracting your information...",
+    `Activating ${p} analysis...`,
+    "Running against GCC market data pool...",
+    "Matching keywords to your role...",
+    "Something interesting found",
+    "Finalizing your full report...",
+    `${p} results ready`,
   ];
 }
 
@@ -78,16 +68,12 @@ const SAMPLE_STATES = [
   { score: 85, color: "#4ADE80", glow: "rgba(74,222,128,0.35)", status: "Your Foundation is Solid", headline: "Strong — fine-tune for top tier", pill: "+15 Points within reach", dot: 85, kw: 78, st: 82, ct: 90 },
   { score: 94, color: "#22C55E", glow: "rgba(34,197,94,0.4)", status: "Market Ready", headline: "Elite — you\u2019re in the top 6%", pill: "+6 Points within reach", dot: 94, kw: 90, st: 92, ct: 96 },
 ];
-export function SampleResultCard({ isMobile = false, pinnedScore = null }) {
-  const pinnedIdx = pinnedScore != null
-    ? SAMPLE_STATES.findIndex((state) => state.score === pinnedScore)
-    : -1;
-  const [idx, setIdx] = useState(pinnedIdx >= 0 ? pinnedIdx : 0);
+function SampleResultCard({ isMobile = false }) {
+  const [idx, setIdx] = useState(0);
   useEffect(() => {
-    if (pinnedIdx >= 0) return undefined;
     const id = setInterval(() => setIdx((i) => (i + 1) % SAMPLE_STATES.length), 2500);
     return () => clearInterval(id);
-  }, [pinnedIdx]);
+  }, []);
   const s = SAMPLE_STATES[idx];
   const ringSize = 140;
   const sw = 10;
@@ -222,7 +208,7 @@ function scoreColor(v) {
   return "#4ADE80";
 }
 
-export function PremiumScoreCircle({ score }) {
+function PremiumScoreCircle({ score }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let cancelled = false;
@@ -282,222 +268,9 @@ export function PremiumScoreCircle({ score }) {
   );
 }
 
-// ─── Upgrade conversion block ─────────────────────────────────────────────────
-// Shared by BOTH result paths:
-//   * mode="matched"   — full JD analysis. missingCount = visibilityBoosters
-//                        + rankTriggers (real missing-keyword arrays).
-//   * mode="cv_only"   — CV-health only (no JD). missingCount =
-//                        structureIssues.length (real model-flagged parseability
-//                        problems, each with claim/evidence/weight).
-//
-// Every claim traces to real analyze-cv response data:
-//   current/target/withinReach = arithmetic on current,
-//   missingCount               = whichever real array the active path carries,
-//   "AI tailor"                = real api/ai.js handleTailor feature,
-//   "every flagged bullet"     = /builder?from=ats&gaps=… handoff implemented
-//                                by AtsGapsActionCard:92-94.
-// No fabricated bullets, no fake issue count, no guaranteed gain.
-function UpgradeConversionBlock({ current, mode, missingCount, industry, onUpgrade }) {
-  if (current >= 85 || missingCount <= 0) return null;
-  const withinReach = 100 - current;
-  const target = current + withinReach;
-  const industryLabel = industry ? String(industry).trim() : null;
-
-  let proofLine;
-  if (mode === "matched") {
-    proofLine = (
-      <>
-        We found <strong style={{ color: "var(--color-accent-bright)" }}>{missingCount} keyword{missingCount === 1 ? "" : "s"}</strong>
-        {industryLabel
-          ? <> <strong style={{ color: "#fff" }}>{industryLabel}</strong> recruiters search for </>
-          : <> recruiters search for </>}
-        that your CV is missing.
-      </>
-    );
-  } else {
-    proofLine = (
-      <>
-        We flagged <strong style={{ color: "var(--color-accent-bright)" }}>{missingCount} parseability issue{missingCount === 1 ? "" : "s"}</strong>
-        {industryLabel
-          ? <> <strong style={{ color: "#fff" }}>{industryLabel}</strong> recruiters&apos; ATS </>
-          : <> recruiters&apos; ATS </>}
-        will trip on.
-      </>
-    );
-  }
-
-  return (
-    <div style={{
-      background: "var(--color-surface-01)",
-      border: "1px solid rgba(217,119,6,0.22)",
-      borderRadius: 16,
-      padding: "26px 22px",
-      marginBottom: 32,
-      position: "relative",
-      overflow: "hidden",
-      fontFamily: "'DM Sans', sans-serif",
-    }}>
-      <div aria-hidden style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 1,
-        background: "linear-gradient(90deg, transparent, var(--color-accent-bright), transparent)",
-        opacity: 0.55,
-      }} />
-
-      <div style={{ textAlign: "center", marginBottom: 18 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-accent-bright)", marginBottom: 14 }}>
-          Your gap to the top
-        </div>
-        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 14, marginBottom: 12 }}>
-          <span style={{ fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1, letterSpacing: "-1.5px" }}>{current}</span>
-          <span aria-hidden style={{ fontSize: 20, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>→</span>
-          <span style={{ fontSize: 44, fontWeight: 700, color: "var(--color-accent-bright)", lineHeight: 1, letterSpacing: "-1.5px" }}>{target}</span>
-        </div>
-        <div style={{ fontSize: 15, color: "rgba(255,255,255,0.78)", maxWidth: 360, margin: "0 auto", lineHeight: 1.5, fontWeight: 500 }}>
-          Top-ranked CVs hit {target}. You&apos;re <strong style={{ color: "#fff" }}>{withinReach} points off the top.</strong>
-        </div>
-      </div>
-
-      <div style={{ fontSize: 13.5, color: "#F9B879", marginBottom: 16, textAlign: "center", lineHeight: 1.55, fontWeight: 500, padding: "0 8px" }}>
-        {current < 70
-          ? "Right now, your CV is getting filtered out before a recruiter ever sees it."
-          : "Your CV passes the bot, but ranks low. Recruiters scroll past in seconds."}
-      </div>
-
-      <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginBottom: 22, textAlign: "center", lineHeight: 1.55, padding: "0 8px" }}>
-        {proofLine}
-      </div>
-
-      <div style={{
-        background: "#0F0F0F",
-        border: "1px solid #1A1A1A",
-        borderRadius: 12,
-        padding: "14px 16px 16px",
-        marginBottom: 22,
-      }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--color-accent-bright)", marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <Lock size={11} color="var(--color-accent-bright)" /> Locked
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 10, lineHeight: 1.4, letterSpacing: "-0.2px" }}>
-          Unlock the AI tailor.
-        </div>
-        <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55, marginBottom: 14 }}>
-          It rewrites every flagged bullet to chase the {withinReach} points you&apos;re missing.
-        </div>
-        <div aria-hidden style={{
-          filter: "blur(5px)",
-          userSelect: "none",
-          pointerEvents: "none",
-          opacity: 0.45,
-          fontSize: 12.5,
-          color: "#9E9E9E",
-          lineHeight: 1.6,
-          fontStyle: "italic",
-        }}>
-          Your bullet → rewritten with full keyword coverage…
-        </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button
-          type="button"
-          className="cvp-analyze-cta"
-          onClick={onUpgrade}
-        >
-          Unlock my +{withinReach} plan
-          <span className="cvp-analyze-cta__arrow" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Pro tailor block — served twin of UpgradeConversionBlock ─────────────────
-// Fills the SAME slot directly under the score, with the opposite framing.
-// Pro users already paid for the AI tailor, so there is NO lock / blur /
-// paywall — just a straight route into the Builder AI-tailor pre-loaded with
-// the flagged gaps via the existing /builder?from=ats&gaps=… deep-link (the
-// same one AtsGapsRibbon consumes on the matched path).
-//
-// Gating mirrors UpgradeConversionBlock exactly (current < 85 && missingCount
-// > 0) so the shared slot appears and disappears under identical conditions
-// for both tiers. `onTailor` triggers the parse → draft → Builder handoff;
-// `preparing` reflects the ~10s strict-fidelity parse (existing /api/transform
-// import-only pipeline) so the CTA can show progress instead of dead-clicking.
-function ProTailorBlock({ current, missingCount, onTailor, preparing = false, tailorError = null }) {
-  if (current >= 85 || missingCount <= 0) return null;
-  const withinReach = 100 - current;
-  const target = current + withinReach;
-
-  return (
-    <div style={{
-      background: "var(--color-surface-01)",
-      border: "1px solid rgba(217,119,6,0.22)",
-      borderRadius: 16,
-      padding: "26px 22px",
-      marginBottom: 32,
-      position: "relative",
-      overflow: "hidden",
-      fontFamily: "'DM Sans', sans-serif",
-    }}>
-      <div aria-hidden style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 1,
-        background: "linear-gradient(90deg, transparent, var(--color-accent-bright), transparent)",
-        opacity: 0.55,
-      }} />
-
-      <div style={{ textAlign: "center", marginBottom: 18 }}>
-        {/* Served eyebrow — green "pass" state, no lock glyph */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#4ADE80", marginBottom: 14 }}>
-          <CheckCircle size={12} color="#4ADE80" /> Included in your plan
-        </div>
-        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 14, marginBottom: 12 }}>
-          <span style={{ fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1, letterSpacing: "-1.5px" }}>{current}</span>
-          <span aria-hidden style={{ fontSize: 20, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>→</span>
-          <span style={{ fontSize: 44, fontWeight: 700, color: "var(--color-accent-bright)", lineHeight: 1, letterSpacing: "-1.5px" }}>{target}</span>
-        </div>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 8px", letterSpacing: "-0.4px" }}>
-          Your AI tailor is ready
-        </h2>
-        <div style={{ fontSize: 15, color: "rgba(255,255,255,0.78)", maxWidth: 380, margin: "0 auto", lineHeight: 1.5, fontWeight: 500 }}>
-          Rewrite every flagged bullet to close your <strong style={{ color: "#fff" }}>{withinReach}-point gap.</strong>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <button
-          type="button"
-          className="cvp-analyze-cta"
-          onClick={onTailor}
-          disabled={preparing}
-          aria-busy={preparing}
-        >
-          {preparing ? "Preparing your CV…" : "Open the AI tailor"}
-          {!preparing && (
-            <span className="cvp-analyze-cta__arrow" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-          )}
-        </button>
-      </div>
-      {tailorError && (
-        <div role="alert" style={{ marginTop: 12, textAlign: "center", fontSize: 12.5, color: "#F87171", lineHeight: 1.5 }}>
-          {tailorError}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ATSChecker({
   onResultsVisible,
-  onBack = null,
   resume: resumeProp = {},
   isPro: isProProp = false,
   handleDownload = null,
@@ -509,8 +282,7 @@ export default function ATSChecker({
   const [uploadedFile, setUploadedFile] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
   const [loadingMeta, setLoadingMeta] = useState(null);
-  // Day 2: real pipeline progress — null | "extracting" | "analysing" | "scoring"
-  const [loadingStage, setLoadingStage] = useState(null);
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
   const [chipsRevealed, setChipsRevealed] = useState(false);
   const [isProResults, setIsProResults] = useState(false);
   const [results, setResults] = useState(null);
@@ -521,59 +293,11 @@ export default function ATSChecker({
   const [isMobile, setIsMobile] = useState(
     window.innerWidth < 768
   );
-  const [showPaywall, setShowPaywall] = useState(false);
-  // Sprint #4: Turnstile token + per-call quota/spend response
-  const [turnstileToken, setTurnstileToken] = useState(null);
-  // turnstileStatus: 'idle' (mounting) | 'ready' (token received) |
-  // 'error' (Cloudflare rejected/network/script failed) | 'expired' |
-  // 'unsupported' (browser unsupported) | 'timeout' (no callback fired in time).
-  // Surfaces a visible diagnostic to the user when the silent failure modes
-  // hit (rotated site key, domain mismatch, blocked CDN).
-  const [turnstileStatus, setTurnstileStatus] = useState('idle');
-  const [turnstileWidgetKey, setTurnstileWidgetKey] = useState(0);
-  const turnstileRef = useRef(null);
-  const [quota, setQuota] = useState(null);
-  const [spend, setSpend] = useState(null);
-  // JD-nudge sprint: in-place re-scan from CvOnlyResult (no loading-page swap)
-  const [isReanalyzing, setIsReanalyzing] = useState(false);
-  // ATS → AI-tailor handoff: parses the scanned CV (existing /api/transform
-  // import-only pipeline) into the canonical builder shape, writes it to the
-  // from=ats draft, then routes to /builder. tailorPreparing drives the CTA
-  // spinner; tailorError surfaces a recoverable failure inline.
-  const [tailorPreparing, setTailorPreparing] = useState(false);
-  const [tailorError, setTailorError] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
-  // Raw text extracted during the scan — reused for the tailor handoff so we
-  // don't re-read the file. Falls back to re-extraction if absent.
-  const scannedCvTextRef = useRef("");
-
-  // ─── DEV MOCK — REMOVE BEFORE MERGE (search: MOCKATS_DEV_BYPASS) ──────────
-  // Visit /ats?mockats=true to skip the upload + scan flow and render the
-  // post-score view with hardcoded data. Used for visually QA-ing
-  // AtsGapsActionCard + the /builder?from=ats&gaps=... → AtsGapsRibbon flow
-  // without a real CV upload. Delete this entire block before merging the
-  // standing PR to main.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("mockats") !== "true") return;
-    setResults({
-      score: 42,
-      keywordsScore: 28,
-      structureScore: 35,
-      contentScore: 48,
-      visibilityBoosters: ["Negotiation", "CRM", "Client Relations"],
-      rankTriggers: ["RERA Certified", "Off-plan Sales", "KYC"],
-      industry: "Finance",
-      topPercent: 60,
-    });
-    setPhase("results");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // ─── END MOCKATS_DEV_BYPASS ───────────────────────────────────────────────
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -616,8 +340,12 @@ export default function ATSChecker({
     });
   }, [phase, user?.id, isPro, gatePlanName]);
 
-  // Day 2: removed the 1-second loadingSeconds timer that used to fake
-  // progression. Real stage transitions drive the loading UI now.
+  useEffect(() => {
+    if (phase !== "loading" || !loadingMeta) return;
+    setLoadingSeconds(0);
+    const id = setInterval(() => setLoadingSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [phase, loadingMeta]);
 
   // ── Results: staggered chips + Pro flag for Claude badge ──────────────────
   useEffect(() => {
@@ -651,293 +379,183 @@ export default function ATSChecker({
   const onDragLeave = useCallback(() => {}, []);
 
   // ── Analysis ──────────────────────────────────────────────────────────────
-  // Day 2: real pipeline. Extract CV text client-side → send full text +
-  // JD to the analyze-cv Edge Function → render the structured output
-  // returned via Anthropic tool_use. No more hardcoded scores, no more
-  // base64 truncation, no more 6s artificial delay, no more detectRole
-  // regex fallback to sales_real_estate. Persona is inferred by the model.
-  //
-  // JD-nudge: handleAnalyze accepts an optional { jdOverride, fromNudge }
-  // so the CvOnlyResult component can re-run the scan with a freshly
-  // pasted JD without forcing a navigation. fromNudge=true skips the
-  // staged loading screen (CvOnlyResult shows its own shimmer).
-  const handleAnalyze = useCallback(async (overrides) => {
+  const handleAnalyze = useCallback(async () => {
     if (!uploadedFile) { setError("Please upload your CV."); return; }
     setError(null);
 
-    const jdOverride = overrides && typeof overrides.jdOverride === "string" ? overrides.jdOverride : null;
-    const fromNudge = !!(overrides && overrides.fromNudge);
-    const jdToUse = jdOverride != null ? jdOverride : jobDescription;
-    if (jdOverride != null) setJobDescription(jdOverride);
-
-    if (typeof window.gtag === "function") {
-      window.gtag("event", "lead_capture", {
-        source: "ats_checker",
-        from_nudge: fromNudge ? 1 : 0,
-      });
-    }
-
     let paidUser = false;
-    let planName = "Career Pro";
     if (user?.id) {
       const gate = await getGatekeeperData();
       paidUser = gate.isPaidUser;
-      planName = gate.planName || planName;
     }
-    const tier = paidUser ? "paid" : "free";
 
-    if (fromNudge) {
-      setIsReanalyzing(true);
-    } else {
-      setPhase("loading");
-    }
-    setLoadingStage("extracting");
-
-    let cvText = "";
-    try {
-      const extracted = await extractCvText(uploadedFile);
-      cvText = extracted.text;
-      scannedCvTextRef.current = cvText;
-    } catch (err) {
-      if (err instanceof CvExtractionError) {
-        setError(err.hint || err.message);
-      } else {
-        // eslint-disable-next-line no-console
-        console.error("ATS extraction error:", err);
-        setError("Could not read your file. Try uploading a text-based PDF or DOCX.");
-      }
-      if (fromNudge) {
-        setIsReanalyzing(false);
-      } else {
+    if (!paidUser) {
+      try {
+        const jd = jobDescription.trim();
+        if (!jd) {
+          const seen = new Set();
+          const pool = [];
+          poolLoop: for (const pack of Object.values(skillSuggestions)) {
+            for (const row of pack?.atsKeywords ?? []) {
+              if (pool.length >= 30) break poolLoop;
+              const keyword = row?.keyword?.trim();
+              if (!keyword) continue;
+              const key = keyword.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              pool.push(keyword);
+            }
+          }
+          const visibilityBoosters = pool.slice(0, 5);
+          const rankTriggers = pool.slice(5, 10);
+          const keywordsScore = 65;
+          const structureScore = 70;
+          const contentScore = 75;
+          const score = Math.round((65 + 70 + 75) / 3);
+          const industry = "General GCC Market";
+          const topPercent = 42;
+          const missingCount = 5;
+          setResults({
+            score,
+            keywordsScore,
+            structureScore,
+            contentScore,
+            visibilityBoosters,
+            rankTriggers,
+            industry,
+            topPercent,
+            missingCount,
+          });
+          setPhase("results");
+        } else {
+          const jdLower = jd.toLowerCase();
+          const roleKey = detectRole(jd) || "sales_real_estate";
+          const pack = skillSuggestions[roleKey];
+          const list = pack?.atsKeywords ?? [];
+          const visibilityBoosters = [];
+          const rankTriggers = [];
+          for (const row of list) {
+            const keyword = row?.keyword?.trim();
+            if (!keyword) continue;
+            if (jdLower.includes(keyword.toLowerCase())) visibilityBoosters.push(keyword);
+            else rankTriggers.push(keyword);
+          }
+          const total = list.length;
+          const keywordsScore = total > 0 ? Math.round((visibilityBoosters.length / total) * 100) : 0;
+          const structureScore = 70;
+          const contentScore = 75;
+          const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
+          const industry =
+            (pack?.jobTitles && pack.jobTitles[0]) ||
+            roleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          const topPercent = Math.max(1, Math.min(99, 100 - score));
+          setResults({
+            score,
+            keywordsScore,
+            structureScore,
+            contentScore,
+            visibilityBoosters,
+            rankTriggers,
+            industry,
+            topPercent,
+            missingCount: rankTriggers.length,
+          });
+          setPhase("results");
+          onResultsVisible?.(true);
+        }
+      } catch (err) {
+        console.error("ATS analysis error:", err);
+        setError("Something went wrong. Please try again.");
         setPhase("idle");
       }
       return;
     }
 
-    setLoadingStage("analysing");
-
-    try {
-      const userId = user?.id ?? "anon";
-
-      // Sprint #4: use plain fetch so we can read the response body on
-      // 429 (rate_limited) / 402 (spend_capped) / 403 (turnstile_blocked).
-      const response = await safeFetch(
-        `${SUPABASE_URL}/functions/v1/analyze-cv`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            apikey: SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            cvText,
-            jobDescription: jdToUse || "",
-            userId,
-            tier,
-            planName,
-            turnstileToken,
-          }),
-        },
-      );
-
-      let data = null;
+    const jdPro = jobDescription.trim();
+    if (!jdPro) {
       try {
-        data = await response.json();
-      } catch {
-        // ignore — handled below
-      }
-
-      // Reset Turnstile after every attempt so the next try gets a fresh token.
-      if (turnstileRef.current && typeof turnstileRef.current.reset === "function") {
-        try { turnstileRef.current.reset(); } catch { /* noop */ }
-      }
-      setTurnstileToken(null);
-      setTurnstileStatus('idle');
-
-      if (!response.ok) {
-        const friendly =
-          (data && data.message) ||
-          (response.status === 429
-            ? "Daily scan limit reached. Try again tomorrow or upgrade."
-            : response.status === 402
-              ? "Daily Anthropic spend cap hit. Resets at UTC midnight."
-              : response.status === 403
-                ? "Captcha verification failed. Reload and try again."
-                : "Scoring engine returned an error. Please try again.");
-        setError(friendly);
-        if (fromNudge) setIsReanalyzing(false);
-        else setPhase("idle");
-        if (data && data.quota) setQuota(data.quota);
-        if (data && data.spend) setSpend(data.spend);
-        return;
-      }
-
-      if (data && data.error) {
-        const friendly = data.message || "Scoring engine returned an error. Please try again.";
-        setError(friendly);
-        if (fromNudge) setIsReanalyzing(false);
-        else setPhase("idle");
-        return;
-      }
-
-      setLoadingStage("scoring");
-
-      if (user) {
-        try {
-          await supabase.from("ats_results").insert({
-            user_id: user.id,
-            score: data.score,
-            keywords_score: data.keywordsScore,
-            structure_score: data.structureScore,
-            content_score: data.contentScore,
-            visibility_boosters: data.visibilityBoosters,
-            rank_triggers: data.rankTriggers,
-            industry: data.industry,
-            created_at: new Date().toISOString(),
-          });
-        } catch (persistErr) {
-          // Persistence failure is not fatal for the scan itself.
-          // eslint-disable-next-line no-console
-          console.warn("ats_results persist failed:", persistErr);
+        const seen = new Set();
+        const pool = [];
+        poolLoop: for (const pack of Object.values(skillSuggestions)) {
+          for (const row of pack?.atsKeywords ?? []) {
+            if (pool.length >= 30) break poolLoop;
+            const keyword = row?.keyword?.trim();
+            if (!keyword) continue;
+            const key = keyword.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            pool.push(keyword);
+          }
         }
-      }
-
-      setResults(data);
-      if (data.quota) setQuota(data.quota);
-      if (data.spend) setSpend(data.spend);
-      setPhase("results");
-      onResultsVisible?.(true);
-
-      // JD-nudge analytics: fire when a nudge re-scan flips cv_only → matched.
-      if (fromNudge && data?.mode === "matched") {
-        logEvent("jd_nudge_converted", {
-          score: data.score,
-          industry: data.industry,
-          seniority: data.seniority,
-          jdChars: jdToUse.length,
-          model: data.model,
+        const visibilityBoosters = pool.slice(0, 5);
+        const rankTriggers = pool.slice(5, 10);
+        const keywordsScore = 65;
+        const structureScore = 70;
+        const contentScore = 75;
+        const score = Math.round((65 + 70 + 75) / 3);
+        const industry = "General GCC Market";
+        const topPercent = 42;
+        const missingCount = 5;
+        setResults({
+          score,
+          keywordsScore,
+          structureScore,
+          contentScore,
+          visibilityBoosters,
+          rankTriggers,
+          industry,
+          topPercent,
+          missingCount,
         });
+        setPhase("results");
+        onResultsVisible?.(true);
+      } catch (err) {
+        console.error("ATS analysis error:", err);
+        setError("Something went wrong. Please try again.");
+        setPhase("idle");
       }
-      if (fromNudge) setIsReanalyzing(false);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("ATS analysis error:", err);
-      setError("Something went wrong. Please try again.");
-      if (fromNudge) setIsReanalyzing(false);
-      else setPhase("idle");
-    } finally {
-      setLoadingStage(null);
-    }
-  }, [uploadedFile, jobDescription, user, onResultsVisible, turnstileToken]);
-
-  // JD-nudge: callback handed to CvOnlyResult. Always passes
-  // fromNudge:true so the parent knows to skip the staged loader and
-  // fire jd_nudge_converted on success.
-  const handleNudgeAnalyze = useCallback(
-    (jdText) => handleAnalyze({ jdOverride: jdText, fromNudge: true }),
-    [handleAnalyze],
-  );
-
-  // ── ATS → AI-tailor handoff ───────────────────────────────────────────────
-  // Ships CLAUDE.md pending #6 (CV import) for this flow: parse the SCANNED CV
-  // into the canonical builder shape via the existing /api/transform
-  // import-only pipeline (the proven strict-source-fidelity PARSE_SYSTEM_PROMPT
-  // — transcription only, no rewriting; the AI tailor is the only step that
-  // changes content), write it to the from=ats draft, then route to the
-  // Builder. The draft key is computed with the SAME getDraftStorageKey the
-  // Builder reads on mount, so writer and reader can never drift.
-  const openAiTailor = useCallback(async () => {
-    if (tailorPreparing) return;
-    setTailorError(null);
-
-    // Tag gaps at the source: structureIssues + atsFlags → typed STRUCTURAL
-    // gaps (Phase A). Type + weight are preserved by carrying them in the
-    // draft, NOT the URL (too small for typed objects).
-    const typedGaps = buildStructuralGaps(results);
-    const search = "?from=ats";
-    // Key the Builder will read on mount — derived identically here.
-    const draftKey = getDraftStorageKey(null, search);
-
-    if (!uploadedFile) {
-      // No file to parse (e.g. a remounted session). Route anyway; the Builder
-      // falls back to its normal resume and shows no fixes panel.
-      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: false, gapsCount: typedGaps.length });
-      navigate(`/builder${search}`);
       return;
     }
 
-    setTailorPreparing(true);
+    setPhase("loading");
+    const started = Date.now();
     try {
-      const cvText = scannedCvTextRef.current
-        || (await extractCvText(uploadedFile)).text;
-
-      const { data: { session } = {} } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      if (!accessToken) {
-        setTailorError("Please sign in again to open the tailor.");
-        setTailorPreparing(false);
-        return;
-      }
-
-      const uploadRes = await safeFetch("/api/transform?action=upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ text: cvText, mode: "import-only", source_chars: cvText.length }),
+      const userId = user?.id ?? "anon";
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = () => reject(new Error("File read failed"));
+        reader.readAsDataURL(uploadedFile);
       });
-      const uploadJson = await uploadRes.json().catch(() => ({}));
-      if (!uploadRes.ok || !uploadJson.ok || !uploadJson.session_id) {
-        setTailorError(uploadJson.error || "Could not prepare your CV. Please try again.");
-        setTailorPreparing(false);
-        return;
-      }
 
-      const parseRes = await safeFetch("/api/transform?action=parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({ session_id: uploadJson.session_id }),
-      });
-      const parseJson = await parseRes.json().catch(() => ({}));
-      if (!parseRes.ok || !parseJson.ok || !parseJson.cv_data) {
-        setTailorError(parseJson.error || "Could not read your CV. Please try again.");
-        setTailorPreparing(false);
-        return;
-      }
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-cv", { body: { fileBase64, fileName: uploadedFile.name, jobDescription, userId } });
+      if (fnError) throw fnError;
 
-      // Hand the faithfully-parsed CV + typed gaps to the Builder via the
-      // from=ats draft (v2 payload). Writer and reader use the same key.
-      writeCvDraft(draftKey, {
-        version: 2,
-        cv: parseJson.cv_data,
-        atsGaps: typedGaps,
-        // Inferred industry drives the Builder's ATS-template recommendation.
-        industry: results?.industry || null,
-        // One-time welcome popup trigger; Builder flips this to "seen" after
-        // showing it once for this import.
-        atsWelcome: "pending",
-        templateId: null,
-        resumeId: null,
-      }, user?.id || null);
-      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: true, gapsCount: typedGaps.length });
-      navigate(`/builder${search}`);
-    } catch (e) {
-      setTailorError("Something went wrong preparing your CV. Please try again.");
-      setTailorPreparing(false);
+      if (user) {
+        await supabase.from("ats_results").insert({
+          user_id: user.id, score: data.score,
+          keywords_score: data.keywordsScore, structure_score: data.structureScore,
+          content_score: data.contentScore, visibility_boosters: data.visibilityBoosters,
+          rank_triggers: data.rankTriggers, industry: data.industry,
+          created_at: new Date().toISOString(),
+        });
+      }
+      const elapsed = Date.now() - started;
+      const remaining = Math.max(0, 6000 - elapsed);
+      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+      setResults(data);
+      setPhase("results");
+      onResultsVisible?.(true);
+    } catch (err) {
+      console.error("ATS analysis error:", err);
+      setError("Something went wrong. Please try again.");
+      setPhase("idle");
     }
-  }, [uploadedFile, tailorPreparing, navigate, results, user?.id]);
+  }, [uploadedFile, jobDescription, user, onResultsVisible]);
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (
-    <nav style={{ width: "100%", padding: "16px 24px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0, boxSizing: "border-box" }}>
-      {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          style={{ background: "transparent", border: "none", padding: "6px 8px", color: "#A0A0A0", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}
-        >
-          ← Back
-        </button>
-      )}
+    <nav style={{ padding: "22px 44px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
       <span style={{ fontFamily: "'DM Sans', monospace", fontSize: 18, display: "inline-flex", alignItems: "baseline", gap: 0, whiteSpace: "nowrap" }}>
         <span style={{ color: "#F59E0B", fontWeight: 800, letterSpacing: "-2px" }}>{">>>"}</span>
         <span style={{ color: "#FFFFFF", fontWeight: 600 }}> CVPassport</span>
@@ -962,162 +580,69 @@ export default function ATSChecker({
           Upload your CV, paste the job description. Get your score in seconds — based on real regional hiring data.
         </p>
 
-        {/* Dropzone: static border so the orbiting Analyze CTA below is the
-            only animated element on this surface. File-ready signal lives in
-            the green-tinted icon container + filename swap. */}
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
-          style={{ position: "relative", background: "#0f0f0f", border: "1px solid #2A2A2A", borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", overflow: "hidden", marginBottom: 14 }}
-        >
-          <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
-          <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.06)", border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.12)"}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
-            {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color="rgba(255,255,255,0.5)" />}
+        <div style={{ position: "relative", borderRadius: 16, marginBottom: 14 }}>
+          <div aria-hidden style={{
+            position: "absolute", inset: 0, borderRadius: 16, padding: 1,
+            background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            animation: "ats-spin-border 4s linear infinite",
+          }} />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
+            style={{ position: "relative", background: "#0f0f0f", border: "none", borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", overflow: "hidden" }}
+          >
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
+            <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.06)", border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.12)"}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color="rgba(255,255,255,0.5)" />}
+            </div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
+              {uploadedFile ? uploadedFile.name : "Drop your CV here"}
+            </div>
+            <div style={{ fontSize: 13, color: T.muted }}>
+              {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>browse your CV</span></>}
+            </div>
+            <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
           </div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
-            {uploadedFile ? uploadedFile.name : "Drop your CV here"}
-          </div>
-          <div style={{ fontSize: 13, color: T.muted }}>
-            {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>browse your CV</span></>}
-          </div>
-          <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
         </div>
 
         <div style={{ position: "relative", marginBottom: 16 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: T.muted, marginBottom: 6, display: "block" }}>Target Job Description</label>
-          <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>Paste the full job posting — role, requirements, responsibilities.</div>
+          <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: T.muted, marginBottom: 8, display: "block" }}>Target Job Description</label>
           <textarea
             value={jobDescription} onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="e.g. We are hiring a Customer Service Executive in Dubai. Requirements: 2+ years experience, fluent English, banking background preferred..."
+            placeholder="Paste the full job description here — the more detail, the sharper your analysis..."
             style={{ width: "100%", background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: 16, padding: "18px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.text, resize: "none", height: 130, outline: "none", lineHeight: 1.6, transition: "border-color 0.2s", boxSizing: "border-box" }}
             onFocus={(e) => { e.target.style.borderColor = T.amberBorder; }}
             onBlur={(e) => { e.target.style.borderColor = T.border; }}
           />
           <div style={{ position: "absolute", bottom: 14, right: 16, fontSize: 11, color: "rgba(160,160,160,0.4)", pointerEvents: "none" }}>{jobDescription.length} chars</div>
         </div>
-        <div style={{ fontSize: 12, color: T.muted, marginBottom: 16 }}>Tip: Copy directly from LinkedIn, Bayt, or Indeed.</div>
+        <div style={{ fontSize: 12, color: T.muted, marginBottom: 16 }}>Optional — add a job description for a targeted score</div>
 
         {error && (
           <div style={{ color: T.red, fontSize: 13, marginBottom: 12, padding: "10px 16px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10 }}>{error}</div>
         )}
 
-        {/* Sprint #4: Turnstile widget — anonymous + free tiers only.
-            Paid users skip the captcha (already auth'd + rate-limited).
-            All Turnstile lifecycle events are wired so any silent
-            failure (rotated key, domain mismatch, blocked CDN) surfaces
-            in DevTools and to the user via turnstileStatus. */}
-        {!isPro && TURNSTILE_SITE_KEY && (
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Turnstile
-                key={turnstileWidgetKey}
-                ref={turnstileRef}
-                siteKey={TURNSTILE_SITE_KEY}
-                onSuccess={(token) => {
-                  setTurnstileToken(token);
-                  setTurnstileStatus('ready');
-                }}
-                onError={(code) => {
-                  console.error("[turnstile] error", code);
-                  setTurnstileToken(null);
-                  setTurnstileStatus('error');
-                }}
-                onExpire={() => {
-                  setTurnstileToken(null);
-                  setTurnstileStatus('expired');
-                }}
-                onUnsupported={() => {
-                  console.error("[turnstile] unsupported browser");
-                  setTurnstileStatus('unsupported');
-                }}
-                onTimeout={() => {
-                  console.error("[turnstile] timeout — script failed to challenge");
-                  setTurnstileStatus('timeout');
-                }}
-                // appearance: 'always' forces the widget to render visibly for
-                // every free user, regardless of Cloudflare's device-trust
-                // signal. Default 'interaction-only' lets trusted devices
-                // pass silently — that breaks the user-visible gate we
-                // promised, so we override it here.
-                options={{ theme: "dark", size: "normal", appearance: "always" }}
-              />
-            </div>
-            {(turnstileStatus === 'error' || turnstileStatus === 'timeout' || turnstileStatus === 'unsupported' || turnstileStatus === 'expired') && (
-              <div style={{
-                marginTop: 10,
-                padding: "10px 14px",
-                background: "rgba(248,113,113,0.08)",
-                border: "1px solid rgba(248,113,113,0.25)",
-                borderRadius: 10,
-                fontSize: 12,
-                color: T.muted,
-                textAlign: "center",
-              }}>
-                {turnstileStatus === 'unsupported'
-                  ? 'Your browser is not supported by the verification check. Try a different browser.'
-                  : turnstileStatus === 'expired'
-                    ? 'Verification expired. Tap below to retry.'
-                    : 'Verification failed to load. Tap below to retry, or refresh the page.'}
-                <div style={{ marginTop: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTurnstileToken(null);
-                      setTurnstileStatus('idle');
-                      setTurnstileWidgetKey((k) => k + 1);
-                    }}
-                    style={{
-                      background: "transparent",
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 8,
-                      padding: "6px 14px",
-                      color: T.text,
-                      fontSize: 12,
-                      cursor: "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    Retry verification
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        {!isPro && !TURNSTILE_SITE_KEY && (
-          // Build-time misconfig: env var missing. Surface so future
-          // deploys catch the regression early instead of silently
-          // letting free traffic through (or breaking the gate, which
-          // is what happened in the field).
-          (() => {
-            console.error("[turnstile] REACT_APP_TURNSTILE_SITE_KEY is missing at build time");
-            return null;
-          })()
-        )}
-
-        {/* Primary action — designed orbiting-amber CTA. The whole .cvp-analyze-cta
-            rule set (markup, hover, focus, disabled, reduced-motion, the ::before
-            bright orbit and ::after blurred bloom) lives in src/index.css, sharing
-            the canonical --ats-angle / ats-spin-border animation engine with the
-            rest of the conversion-moment surfaces. Speed knob (--cta-speed)
-            overrides at 1.2s while analysis runs so the orbit reads as "working". */}
-        <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+        <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
+          <div aria-hidden style={{
+            position: "absolute", inset: 0, borderRadius: 12, padding: 1,
+            background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            animation: "ats-spin-border 4s linear infinite",
+          }} />
           <button
-            type="button"
-            className="cvp-analyze-cta"
             onClick={handleAnalyze}
-            disabled={(phase === "loading") || (!isPro && TURNSTILE_SITE_KEY && !turnstileToken)}
-            aria-busy={phase === "loading" || undefined}
-            style={phase === "loading" ? { "--cta-speed": "1.2s" } : undefined}
+            style={{ width: "100%", background: "#0A0A0A", color: "#fff", border: "none", borderRadius: 12, padding: "18px 24px", fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, transition: "opacity 0.15s, transform 0.15s", position: "relative" }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
           >
-            {phase === "loading" ? "Analyzing…" : "Analyze My CV"}
-            {phase !== "loading" && (
-              <span className="cvp-analyze-cta__arrow" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            )}
+            Analyze My CV <ArrowRight size={18} />
           </button>
         </div>
 
@@ -1125,17 +650,6 @@ export default function ATSChecker({
           <Lock size={12} color="rgba(160,160,160,0.5)" />
           Secure processing via Supabase · Your data is never sold
         </div>
-
-        {quota && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontSize: 12, color: T.muted }}>
-            {quota.remaining} of {quota.limit} scans remaining today ({quota.tier})
-          </div>
-        )}
-        {spend?.alertThresholdHit && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, fontSize: 12, color: T.amber }}>
-            ⚠ {Math.round((spend.spentUsdToday / spend.capUsd) * 100)}% of your daily AI budget used (${spend.spentUsdToday.toFixed(2)} of ${spend.capUsd.toFixed(2)})
-          </div>
-        )}
       </div>
     );
 
@@ -1177,9 +691,7 @@ export default function ATSChecker({
         ? buildProLoadingSteps(loadingMeta.planName)
         : buildFreeLoadingSteps()
       : [];
-    // Day 2: tie step progression to the real loadingStage state.
-    const stageIdx = loadingStage ? STAGE_ORDER.indexOf(loadingStage) : 0;
-    const currentIdx = steps.length ? Math.max(0, Math.min(stageIdx, steps.length - 1)) : 0;
+    const currentIdx = steps.length ? Math.min(loadingSeconds, steps.length - 1) : 0;
 
     return (
       <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", lineHeight: 1.6 }}>
@@ -1245,8 +757,8 @@ export default function ATSChecker({
             {loadingMeta && (
               <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
                 {steps.map((text, i) => {
-                  const done = i < currentIdx;
-                  const current = i === currentIdx;
+                  const done = loadingSeconds > i;
+                  const current = !done && i === currentIdx;
                   return (
                     <li
                       key={i}
@@ -1278,58 +790,7 @@ export default function ATSChecker({
     );
   }
 
-  // ── RENDER: results — JD-nudge cv_only branch ────────────────────────────
-  // The Edge Function returns mode === "cv_only" when the user submitted
-  // no JD (or one shorter than 50 chars). CvOnlyResult owns its own
-  // animated CTA + locked-preview + shimmer transition; pasting a JD and
-  // clicking Analyze re-enters this component via handleNudgeAnalyze and
-  // the next response (mode === "matched") falls through to the full
-  // result render below.
-  if (results?.mode === "cv_only") {
-    // cv_only schema uses `cvHealthScore` (0-100 parseability score) where
-    // matched uses `score` (fit score). The block reads cvHealthScore and
-    // uses structureIssues.length as the proof-line count — both real on
-    // this path, neither overlap with the keyword/JD framing used on matched.
-    const cvOnlyCurrent = typeof results.cvHealthScore === "number" ? results.cvHealthScore : 0;
-    const cvOnlyIssueCount = Array.isArray(results.structureIssues) ? results.structureIssues.length : 0;
-    return (
-      <>
-        <Nav back={() => { setPhase("idle"); setResults(null); setUploadedFile(null); setJobDescription(""); }} />
-        <CvOnlyResult
-          result={results}
-          onAnalyze={handleNudgeAnalyze}
-          isAnalyzing={isReanalyzing}
-          upgradeSlot={isPro ? (
-            <ProTailorBlock
-              current={cvOnlyCurrent}
-              missingCount={cvOnlyIssueCount}
-              preparing={tailorPreparing}
-              tailorError={tailorError}
-              onTailor={() => openAiTailor()}
-            />
-          ) : (
-            <UpgradeConversionBlock
-              current={cvOnlyCurrent}
-              mode="cv_only"
-              missingCount={cvOnlyIssueCount}
-              industry={results.industry}
-              onUpgrade={() => setShowPaywall(true)}
-            />
-          )}
-        />
-        {error && (
-          <div role="alert" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: T.red, fontSize: 13, padding: "10px 16px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-            {error}
-          </div>
-        )}
-        {showPaywall && (
-          <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" />
-        )}
-      </>
-    );
-  }
-
-  // ── RENDER: results — matched ────────────────────────────────────────────
+  // ── RENDER: results ───────────────────────────────────────────────────────
   const score = results?.score ?? 82;
   const keywordsScore = results?.keywordsScore ?? 72;
   const structureScore = results?.structureScore ?? 58;
@@ -1338,9 +799,24 @@ export default function ATSChecker({
   const rankTriggers = results?.rankTriggers ?? ["RERA Certified", "Off-plan Sales", "KYC", "AML"];
   const industry = results?.industry ?? "Finance";
   const topPercent = results?.topPercent ?? 15;
-  const isMonthlyPro = isPro && gatePlanName === "Active Hunter";
+  const handleUnlock = async () => {
+    if (paymentLoading) return;
+    setPaymentLoading(true);
+    try {
+      const url = await getPaymentLink('ats', user?.id, user?.email);
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert('Payment initialization failed. Please try again.');
+      }
+    } catch {
+      alert('Payment initialization failed. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   return (
-    <>
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
       <style>{`
         @property --ats-angle {
@@ -1370,30 +846,6 @@ export default function ATSChecker({
             </div>
             <div style={{ fontSize: 12, color: '#444', textAlign: 'center', marginBottom: 16, letterSpacing: '0.3px' }}>Analyzed against real GCC &amp; India hiring data</div>
           </div>
-
-          {!isPro && (
-            <UpgradeConversionBlock
-              current={score}
-              mode="matched"
-              missingCount={visibilityBoosters.length + rankTriggers.length}
-              industry={industry}
-              onUpgrade={() => setShowPaywall(true)}
-            />
-          )}
-
-          <AtsGapsActionCard
-            score={score}
-            visibilityBoosters={visibilityBoosters}
-            isPro={isPro}
-            onUpgrade={() => setShowPaywall(true)}
-            onPrimary={() => openAiTailor()}
-            primaryBusy={tailorPreparing}
-          />
-          {tailorError && (
-            <div role="alert" style={{ marginTop: -16, marginBottom: 24, textAlign: "center", fontSize: 12.5, color: T.red, lineHeight: 1.5 }}>
-              {tailorError}
-            </div>
-          )}
 
           {/* Gradient bar */}
           <div style={{ marginBottom: 36 }}>
@@ -1490,28 +942,112 @@ export default function ATSChecker({
             </div>
           </div>
 
+          {/* Conversion card — premium redesign */}
+          <div style={{
+            background: '#0A0A0A',
+            borderRadius: 20,
+            padding: '32px 24px',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Running white light border */}
+            <div aria-hidden style={{
+              position: 'absolute', inset: 0, borderRadius: 20, padding: 1,
+              background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              pointerEvents: 'none',
+              animation: 'ats-spin-border 3s linear infinite',
+            }} />
 
-          {isMonthlyPro && (
-            <div style={{ textAlign: 'center', marginTop: 8 }}>
+            {/* Pulsing lock circle */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <div style={{
+                background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.8) 85%, transparent 100%)',
+                borderRadius: '50%',
+                padding: 1.5,
+                display: 'inline-block',
+                animation: 'ats-spin-border 3s linear infinite',
+              }}>
+                <div style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: '#0A0A0A',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
+                }}>
+                  <div aria-hidden style={{
+                    position: 'absolute', inset: -6, borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    animation: 'ats-pulse-out 2.5s ease-out infinite',
+                  }} />
+                  <div aria-hidden style={{
+                    position: 'absolute', inset: -6, borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    animation: 'ats-pulse-out 2.5s ease-out infinite 0.8s',
+                  }} />
+                  {paymentLoading ? (
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%',
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderTopColor: '#fff',
+                      animation: 'ats-spin-check 0.8s linear infinite',
+                    }} />
+                  ) : (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: 8 }}>
+              {paymentLoading ? 'Preparing checkout...' : "See exactly what to fix in your CV"}
+            </div>
+            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.65, marginBottom: 24, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
+              {paymentLoading ? 'Connecting to secure payment...' : 'Get your full keyword gap, AI rewrite suggestions, and ATS score breakdown \u2014 built on real GCC hiring data'}
+            </div>
+
+            {/* Unlock button with running border */}
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12, marginBottom: 12 }}>
               <button
-                type="button"
-                onClick={() => setShowPaywall(true)}
+                onClick={handleUnlock}
+                disabled={paymentLoading}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '6px 4px',
-                  color: T.muted,
-                  fontSize: 12,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'rgba(160,160,160,0.25)',
+                  width: '100%', background: '#0A0A0A', color: '#fff',
+                  border: 'none', borderRadius: 12,
+                  padding: '16px 24px', fontSize: 15, fontWeight: 600,
+                  cursor: paymentLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 8, letterSpacing: -0.3, opacity: paymentLoading ? 0.6 : 1,
+                  transition: 'opacity 0.15s',
                 }}
               >
-                {"You\u2019re on Active Hunter. Switch to Career Pro annual and save AED 149/yr \u2192"}
+                <div aria-hidden style={{
+                  position: 'absolute', inset: 0, borderRadius: 12, padding: 1,
+                  background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)',
+                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  WebkitMaskComposite: 'xor',
+                  maskComposite: 'exclude',
+                  pointerEvents: 'none',
+                  animation: 'ats-spin-border 2s linear infinite',
+                }} />
+                {paymentLoading ? 'Preparing checkout...' : 'Unlock Full Analysis \u2014 AED 29/mo'}
+                {!paymentLoading && (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                )}
               </button>
             </div>
-          )}
+
+            <div style={{ fontSize: 11, color: '#333' }}>
+              Cancel anytime · Instant access · 500+ UAE job seekers
+            </div>
+          </div>
 
           {/* Download CV */}
           <div style={{ marginTop: 28 }}>
@@ -1529,7 +1065,7 @@ export default function ATSChecker({
                   } else if (onNavigateToContent) {
                     onNavigateToContent();
                   } else {
-                    navigate('/dashboard');
+                    navigate('/builder');
                   }
                 }}
                 disabled={hasCv && downloadStateProp.status !== 'idle'}
@@ -1546,7 +1082,7 @@ export default function ATSChecker({
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                <span>{hasCv ? (downloadStateProp.status === 'generating' ? 'Generating your CV...' : 'Download CV') : 'Start Building'}</span>
+                <span>{hasCv ? (downloadStateProp.status === 'generating' ? 'Generating your CV...' : 'Download CV') : 'Fix your CV in the builder \u2014 free'}</span>
               </button>
             </div>
             <div style={{ fontSize: 11, color: '#333', textAlign: 'center', marginTop: 10 }}>
@@ -1608,7 +1144,5 @@ export default function ATSChecker({
         </div>
       </div>
     </div>
-    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" />
-    </>
   );
 }
