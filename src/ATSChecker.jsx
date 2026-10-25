@@ -1323,7 +1323,7 @@ export default function ATSChecker({
           </div>
         )}
         {showPaywall && (
-          <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" />
+          <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" score={results?.score ?? null} missingKeywords={results?.visibilityBoosters ?? []} />
         )}
       </>
     );
@@ -1608,7 +1608,7 @@ export default function ATSChecker({
         </div>
       </div>
     </div>
-    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" />
+    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" score={results?.score ?? null} missingKeywords={results?.visibilityBoosters ?? []} />
     </>
   );
 }
