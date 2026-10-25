@@ -1,4 +1,5 @@
-// Unified triple-write analytics helper.
+// Unified analytics helper (Supabase + PostHog + Clarity, plus GA4 for the
+// conversion-funnel events below).
 //
 // logEvent(eventType, metadata?, options?) fans out to three sinks in
 // parallel — Supabase (candidate_events), PostHog (capture), and
@@ -14,6 +15,25 @@ import { supabase } from "../../appSupabaseClient";
 import { trackPostHog } from "./posthog";
 import { tagClarity } from "./clarity";
 import { currentAuthUserId } from "./authState";
+
+// Funnel events that GA4 should also receive. Only these, and only these
+// non-identifying parameters, are forwarded: no user ids, emails or CV text.
+// window.gtag only exists once GA4 has loaded, so if it is absent (blocked,
+// or waiting for consent) this is a silent no-op.
+const GA4_EVENTS = new Set(["upsell_auto_shown", "upgrade_clicked", "checkout_started"]);
+const GA4_PARAMS = ["plan", "price", "currency", "gateway", "cta_location", "surface"];
+
+function trackGA4(eventType, meta) {
+  if (!GA4_EVENTS.has(eventType)) return;
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  const params = {};
+  if (meta) {
+    GA4_PARAMS.forEach((key) => {
+      if (meta[key] !== undefined && meta[key] !== null) params[key] = meta[key];
+    });
+  }
+  window.gtag("event", eventType, params);
+}
 
 export function logEvent(eventType, metadata, options) {
   if (!eventType || typeof eventType !== "string") return;
@@ -49,4 +69,5 @@ export function logEvent(eventType, metadata, options) {
 
   try { trackPostHog(eventType, meta || undefined); } catch (e) { console.warn("[logEvent] posthog threw", e); }
   try { tagClarity(eventType); } catch (e) { console.warn("[logEvent] clarity threw", e); }
+  try { trackGA4(eventType, meta); } catch (e) { console.warn("[logEvent] ga4 threw", e); }
 }

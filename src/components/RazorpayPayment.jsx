@@ -34,7 +34,7 @@ function loadRazorpayScript() {
 // a-la-carte `service` (feature key, e.g. "linkedinOptimizer"). Exactly
 // one should be passed. The server derives amount + currency; the client
 // only identifies which product.
-export default function RazorpayPayment({ plan, service, amountINR, onSuccess, onFailure, onModalOpen }) {
+export default function RazorpayPayment({ plan, service, amountINR, onSuccess, onFailure, onModalOpen, onPaymentConfirmed }) {
   const startedRef = useRef(false);
   const [busy, setBusy] = useState(true);
 
@@ -137,6 +137,17 @@ export default function RazorpayPayment({ plan, service, amountINR, onSuccess, o
               if (!verifyRes.ok || !verifyData.success) {
                 throw new Error(verifyData.error || "Payment verification failed");
               }
+              // Server-verified payment: hand the ids to the caller (analytics)
+              // before the normal success callback. Optional, so other callers
+              // are unaffected.
+              if (onPaymentConfirmed) {
+                try {
+                  onPaymentConfirmed({
+                    orderId: response.razorpay_order_id,
+                    paymentId: response.razorpay_payment_id,
+                  });
+                } catch { /* analytics must never block success */ }
+              }
               if (onSuccess) onSuccess();
             } catch (err) {
               if (onFailure) onFailure(err?.message || "Payment verification failed");
@@ -179,7 +190,7 @@ export default function RazorpayPayment({ plan, service, amountINR, onSuccess, o
     return () => {
       cancelled = true;
     };
-  }, [plan, service, amountINR, onSuccess, onFailure, onModalOpen]);
+  }, [plan, service, amountINR, onSuccess, onFailure, onModalOpen, onPaymentConfirmed]);
 
   if (!busy) return null;
 

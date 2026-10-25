@@ -19,6 +19,7 @@ import {
 } from "../config/tierConfig";
 import { PLAN_META, PLAN_ORDER } from "../config/planPreview";
 import { usePaymentGeo } from "../hooks/usePaymentGeo";
+import { invalidateGatekeeperCache } from "../services/gatekeeper";
 
 const EASE = [0.4, 0, 0.2, 1];
 
@@ -404,6 +405,31 @@ export default function PricingPage({ refreshProfile } = {}) {
     window.history.replaceState({}, "", "/pricing?payment=success");
   }, [razorpayCheckout, clearLaunching]);
 
+  // GA4 purchase event, fired once per verified Razorpay payment. The value
+  // and plan come from the same server-derived config the order was created
+  // from. The sessionStorage key stops a double fire for the same payment id.
+  const handleRazorpayConfirmed = useCallback((info) => {
+    try {
+      if (typeof window.gtag !== "function" || !info?.paymentId) return;
+      const key = `cvp_purchase_${info.paymentId}`;
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, "1");
+      const slug = razorpayCheckout?.plan;
+      const value = razorpayCheckout?.amount;
+      window.gtag("event", "purchase", {
+        transaction_id: info.paymentId,
+        value,
+        currency: "INR",
+        items: [{
+          item_id: slug,
+          item_name: TIERS[slug]?.displayName || slug,
+          price: value,
+          quantity: 1,
+        }],
+      });
+    } catch { /* analytics must never block checkout */ }
+  }, [razorpayCheckout]);
+
   const handleRazorpayFailure = useCallback((msg) => {
     setRazorpayCheckout(null);
     clearLaunching();
@@ -475,17 +501,34 @@ export default function PricingPage({ refreshProfile } = {}) {
     await firePayment(plan.ctaAction);
   };
 
-  // Resume checkout after OAuth return: /pricing?resume=<plan>
+  // Resume checkout: /pricing?resume=<plan>. Used after OAuth return and when
+  // an upsell elsewhere (ATS modal) hands the visitor over. Waits for geo so
+  // the INR/AED routing and the price shown are the visitor's real ones, not
+  // the INR fallback. Signed-out visitors get the auth sheet; the param is
+  // kept so the post-OAuth return still resumes.
+  const resumeSheetShownRef = useRef(false);
   useEffect(() => {
-    if (!authReady || !authUser) return;
+    if (!authReady || !geo.resolved) return;
     const params = new URLSearchParams(window.location.search);
     const resume = params.get("resume");
     if (!resume) return;
+    if (!authUser) {
+      if (resumeSheetShownRef.current) return;
+      resumeSheetShownRef.current = true;
+      const tierSlug = UI_SLUG_TO_TIER[resume];
+      const amount = tierSlug ? getDisplayPrice(tierSlug, currency) : null;
+      setCheckoutSheet({
+        open: true,
+        planId: resume,
+        priceLabel: amount == null ? "" : currency === "AED" ? `AED ${amount}` : `₹${amount}`,
+      });
+      return;
+    }
     params.delete("resume");
     const qs = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
     firePayment(resume);
-  }, [authReady, authUser, firePayment]);
+  }, [authReady, authUser, geo.resolved, currency, firePayment]);
 
   const isCurrentPlan = (plan) => userPlan && userPlan === PLAN_MAP[plan.id];
 
@@ -503,7 +546,7 @@ export default function PricingPage({ refreshProfile } = {}) {
       <PostPaymentOverlay
         gateway="razorpay"
         planLabel={planLabel}
-        onActivated={() => { if (refreshProfile) refreshProfile(); }}
+        onActivated={() => { invalidateGatekeeperCache(); if (refreshProfile) refreshProfile(); }}
         onGoToDashboard={() => navigate("/dashboard")}
         onBuildCv={() => navigate("/builder")}
         isMobile={isMobile}
@@ -899,6 +942,7 @@ export default function PricingPage({ refreshProfile } = {}) {
         plan={razorpayCheckout.plan}
         amountINR={razorpayCheckout.amount}
         onSuccess={handleRazorpaySuccess}
+        onPaymentConfirmed={handleRazorpayConfirmed}
         onFailure={handleRazorpayFailure}
         onModalOpen={handleRazorpayModalOpen}
       />
