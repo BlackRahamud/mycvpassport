@@ -599,6 +599,28 @@ export default function ATSChecker({
       });
   }, []);
 
+  // Auto-open the upgrade modal once per browser session, a few seconds after
+  // a real scan result is on screen, for visitors who are not already paid.
+  // If they open it themselves first, that counts as "seen" so it never
+  // pops a second time. Closing it leaves them on their result.
+  useEffect(() => {
+    if (phase !== "results" || !results || isPro) return undefined;
+    const KEY = "cvp_ats_upsell_shown";
+    let seen = false;
+    try { seen = sessionStorage.getItem(KEY) === "1"; } catch { /* storage blocked */ }
+    if (showPaywall) {
+      try { sessionStorage.setItem(KEY, "1"); } catch { /* storage blocked */ }
+      return undefined;
+    }
+    if (seen) return undefined;
+    const timer = setTimeout(() => {
+      try { sessionStorage.setItem(KEY, "1"); } catch { /* storage blocked */ }
+      logEvent("upsell_auto_shown", { surface: "ats_results" });
+      setShowPaywall(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [phase, results, isPro, showPaywall]);
+
   // ── Loading: resolve tier for step copy (UI only; does not change analysis) ─
   useEffect(() => {
     if (phase !== "loading") {
