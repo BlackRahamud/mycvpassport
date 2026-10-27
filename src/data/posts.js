@@ -18,6 +18,86 @@ export function slugify(title) {
 
 const rawPosts = [
   {
+    title: "What Are You Really Worth in the Gulf? Find Your Number in 10 Seconds",
+    slug: "gulf-vs-india-salary-what-are-you-worth",
+    metaTitle: "Gulf vs India Salary: Find Your Number in 10 Seconds",
+    metaDescription: "Engineer, HR, IT, accountant or banker, your skills may pay far more in the Gulf. See your tax-free Gulf salary vs your Indian pay, free.",
+    keywords: [
+      "Gulf salary vs India salary",
+      "UAE salary calculator",
+      "tax free salary UAE",
+      "AED to INR salary",
+      "salary comparison India Gulf",
+      "jobs in Dubai for Indians",
+      "salary switcher",
+    ],
+    author: "@CVPassportTeam",
+    date: "Tuesday, 27 Oct 2026",
+    readTime: "3 min read",
+    category: "Salary",
+    excerpt: "Same job, tax-free pay, different currency. Here is how to see what you would really take home in the Gulf, and your own multiplier, in 10 seconds.",
+    badges: [{ label: "Salary", tone: "green" }, { label: "Gulf Jobs", tone: "purple" }],
+    image: "/assets/blog/gulf-salary-worth-hero.jpg",
+    body: [
+      { type: "p", text: "Here is a question most professionals never ask:" },
+      { type: "quote", text: "If I did this exact job in the Gulf, what would I actually take home?" },
+      { type: "p", text: "Not the headline salary, but the money that lands in your account after tax." },
+      { type: "p", text: "Most people guess. Some are shocked. A few find out too late." },
+
+      { type: "h2", text: "The Gulf advantage in one line" },
+      { type: "p", text: "In the UAE and across the Gulf, salaries are **tax-free**. In India, your pay is **pre-tax**, so a slice disappears before it reaches you." },
+      { type: "p", text: "That one difference changes the math for almost every profession:" },
+      { type: "ul", items: [
+        "Engineers",
+        "IT professionals",
+        "HR and recruitment",
+        "Accountants and finance",
+        "Bankers",
+        "Marketing, operations, sales, healthcare, design and more",
+      ] },
+      { type: "p", text: "The size of the jump depends on your role and experience, which is exactly why guessing does not work." },
+
+      { type: "h2", text: "It is not just a salary. It is a multiplier." },
+      { type: "p", text: "Forget comparing two salary slips. The real question is how many times your money multiplies once you convert currency, remove tax and compare take-home to take-home." },
+      { type: "p", text: "For some roles the jump is modest. For others it is dramatic. Nobody can tell you your number until you check it." },
+
+      { type: "h2", text: "Why smart professionals run the numbers first" },
+      { type: "p", text: "Before you decide anything, it helps to see the full picture:" },
+      { type: "ul", items: [
+        "What does my role pay in the Gulf at my experience level?",
+        "What do I keep after tax in India vs the Gulf?",
+        "How many times does my money multiply if I switch?",
+      ] },
+      { type: "p", text: "A good decision starts with a real number, not a rumour from a colleague or a viral reel." },
+
+      { type: "h2", text: "Let's be honest" },
+      { type: "p", text: "The Gulf is not a magic switch. Rent, relocation and lifestyle all matter, and every offer is different. Treat the figures as realistic estimates for planning, not a guarantee. But knowing the gap before you decide is always better than wondering for years." },
+      { type: "p", text: "Estimates are based on typical market ranges and a take-home comparison. Actual pay varies by company, city, skills and negotiation." },
+
+      { type: "h2", text: "Check yours. It takes 10 seconds." },
+      { type: "p", text: "The free [Salary Switcher](/salary-switcher) does the maths for you:" },
+      { type: "ul", items: [
+        "Pick your role",
+        "Choose your experience level",
+        "See your Gulf vs India pay, side by side, with your own multiplier",
+      ] },
+      { type: "p", text: "No signup, no guessing. Share your result with a colleague and see whose number is bigger." },
+      { type: "cta", label: "Try the free Salary Switcher →", href: "/salary-switcher" },
+
+      { type: "h2", text: "You know what you are worth. Does your CV?" },
+      { type: "p", text: "Here is what nobody tells you. Most people applying for Gulf jobs never hear back. They are not unqualified; their CV never made it past the first filter. We have seen it hundreds of times." },
+      { type: "p", text: "Knowing your worth is step one. Getting seen is step two. [Build a Gulf-ready CV with CVPassport](/builder), so the right recruiters actually open your application." },
+      { type: "cta", label: "Build my Gulf-ready CV free →", href: "/builder" },
+
+      { type: "h2", text: "Keep reading" },
+      { type: "ul", items: [
+        "[UAE CV format 2026](/blog/uae-cv-format-2026)",
+        "[How to get a job in Dubai from India](/blog/get-job-in-dubai-from-india-2026)",
+        "[Check your ATS score free](/ats)",
+      ] },
+    ],
+  },
+  {
     title: "How AI is changing the job hunt, and how to build a CV that wins in 2026",
     slug: "ai-cv-builder-win-jobs-2026",
     metaTitle: "AI CV builder for 2026, how to beat AI screening and win Gulf jobs",
