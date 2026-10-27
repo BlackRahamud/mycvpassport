@@ -457,6 +457,17 @@ const rawPosts = [
   },
   {
     title: "Salary Switcher: AED to INR — What Your Offer Really Means",
+    metaTitle: "AED to INR Salary: Is Your Gulf Offer Really Worth It?",
+    metaDescription: "Got an AED 8,000 offer? Convert it to INR, compare take-home pay with India after tax, and check what Gulf life costs before you accept.",
+    keywords: [
+      "AED to INR salary",
+      "AED 8000 salary in INR",
+      "Gulf salary vs India salary",
+      "UAE job offer checklist",
+      "tax free salary UAE",
+      "salary comparison India UAE",
+      "Dubai salary for Indians",
+    ],
     author: "@CVPassportTeam",
     date: "Sunday, 22 Feb 2026",
     readTime: "5 min read",
@@ -464,6 +475,93 @@ const rawPosts = [
     excerpt: "Before you accept that AED 8,000 offer, run these numbers.",
     badges: [{ label: "Salary", tone: "green" }, { label: "UAE", tone: "purple" }],
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800",
+    body: [
+      { type: "p", text: "The offer letter says AED 8,000 a month. Your family hears about two lakh rupees. Neither number tells you whether it is a good offer. This guide shows you how to check an AED offer properly in five steps, using AED 8,000 as the example. Swap in your own figure as you go." },
+
+      { type: "h2", text: "Step 1: Convert it at today's rate" },
+      { type: "p", text: "At the time of writing (late October 2026), 1 AED is worth about ₹25.9 at the mid-market rate. That puts an AED 8,000 monthly offer at roughly **₹2.07 lakh a month, or ₹24.9 lakh a year**." },
+      {
+        type: "table",
+        headers: ["Monthly offer", "In INR per month", "In INR per year"],
+        rows: [
+          ["AED 6,000", "₹1.55 lakh", "₹18.6 lakh"],
+          ["AED 8,000", "₹2.07 lakh", "₹24.9 lakh"],
+          ["AED 10,000", "₹2.59 lakh", "₹31.1 lakh"],
+          ["AED 12,000", "₹3.11 lakh", "₹37.3 lakh"],
+        ],
+      },
+      { type: "p", text: "Exchange rates move every day, and the rate you get when you send money home is a little lower than the mid-market rate. Treat the figures as a guide, not a promise." },
+
+      { type: "h2", text: "Step 2: Compare take-home with take-home" },
+      { type: "p", text: "UAE salaries carry no personal income tax, so AED 8,000 in the offer is AED 8,000 in your account. An Indian salary is usually quoted before tax. So the fair question is not whether ₹24.9 lakh beats your salary. It is which Indian salary would leave you with ₹24.9 lakh after tax." },
+      { type: "p", text: "Using India's FY 2026-27 new tax regime (₹75,000 standard deduction, 4% cess, and no tax up to ₹12 lakh of taxable income), the answer is about **₹29.5 lakh a year**. In other words, an Indian job would need to pay roughly ₹29.5 lakh before tax to match what AED 8,000 puts in your hand." },
+      { type: "p", text: "Here is how a few Indian salaries compare:" },
+      {
+        type: "table",
+        headers: ["Indian salary (before tax)", "Tax (approx.)", "Take-home", "AED 8,000 offer vs this"],
+        rows: [
+          ["₹10 lakh", "₹0", "₹10.0 lakh", "2.5x"],
+          ["₹15 lakh", "₹0.98 lakh", "₹14.0 lakh", "1.8x"],
+          ["₹20 lakh", "₹1.92 lakh", "₹18.1 lakh", "1.4x"],
+          ["₹25 lakh", "₹3.20 lakh", "₹21.8 lakh", "1.1x"],
+        ],
+      },
+      { type: "p", text: "These figures are simplified. They use the new regime, ignore provident fund and employer extras, and leave out deductions you could claim under the old regime. Your own numbers will differ a little." },
+
+      { type: "h2", text: "Step 3: Subtract what life in the Gulf costs" },
+      { type: "p", text: "A bigger paycheck only helps if you keep more of it, and rent is the swing factor. A careful single-person budget in Dubai commonly lands in a range like this:" },
+      { type: "ul", items: [
+        "Rent (shared room or a budget area): AED 1,800 to 3,500",
+        "Food and groceries: AED 1,000 to 1,700",
+        "Transport (metro, bus, the odd taxi): AED 650 to 950",
+        "Utilities, phone and internet: AED 1,000 to 1,350",
+      ] },
+      { type: "p", text: "That adds up to roughly **AED 4,500 to 7,500 a month**. On an AED 8,000 offer, that leaves somewhere between AED 500 and AED 3,500 to save or send home, which is about ₹13,000 to ₹92,000 a month. These ranges are rough and vary a lot by area and lifestyle, so check current rents where you plan to live." },
+      { type: "p", text: "Then run the same exercise for your life in India. What you can save in a month there, against what you could save in the Gulf, is the comparison that actually matters. If your employer provides housing or a housing allowance, your numbers change a lot, which brings us to the offer letter." },
+
+      { type: "h2", text: "Step 4: Read the offer letter closely" },
+      { type: "p", text: "Before you accept, find out what the AED 8,000 actually is:" },
+      { type: "ul", items: [
+        "**Basic or total package?** Many UAE offers split pay into basic salary plus housing and transport allowances. Ask for the full breakdown.",
+        "**Gratuity.** End-of-service gratuity is generally calculated on basic salary, not on the total package, so a low basic means a smaller payout when you leave.",
+        "**Health insurance.** Dubai and Abu Dhabi require employers to provide it. Confirm it covers you, and ask whether family cover is included.",
+        "**Visa and relocation.** Who pays for the visa, medical test, Emirates ID and your joining flight?",
+        "**Annual flight ticket.** Many employers give a yearly ticket home. It is worth real money, so ask.",
+        "**Probation and notice period.** Know how long each one is and what happens to your pay if either ends early.",
+      ] },
+
+      { type: "h2", text: "Step 5: Check the multiplier for your own role" },
+      { type: "p", text: "The examples above use one salary. Your role and experience change the picture, because Gulf pay differs a lot between, say, an accountant and a software engineer. The free [Salary Switcher](/salary-switcher) lets you pick your role and experience level and shows your Gulf vs India take-home side by side, with your own multiplier." },
+      { type: "cta", label: "Try the free Salary Switcher →", href: "/salary-switcher" },
+
+      { type: "h2", text: "Mistakes to avoid" },
+      { type: "ul", items: [
+        "Comparing Gulf take-home with your India gross salary.",
+        "Using the headline exchange rate and forgetting transfer fees.",
+        "Counting the whole offer as savings and ignoring rent and food.",
+        "Assuming AED 8,000 is all basic salary when part of it is allowances.",
+        "Accepting before you know who pays for the visa, medical and joining ticket.",
+      ] },
+      { type: "p", text: "Estimates use the mid-market AED to INR rate in late October 2026 and India's FY 2026-27 new tax regime. They are simplified examples for planning, not tax or financial advice." },
+
+      { type: "h2", text: "Frequently Asked Questions" },
+      { type: "h3", text: "Is a salary in the UAE really tax-free?" },
+      { type: "p", text: "The UAE does not charge personal income tax on salaries. Indian tax residency rules can still matter in the year you move, so check your own situation with a tax adviser." },
+      { type: "h3", text: "Is AED 8,000 a good salary in Dubai?" },
+      { type: "p", text: "It depends on your role, your experience and above all your rent. For a single person living carefully, it can leave a healthy monthly saving. For a family or a premium area, it stretches much less far. Run your own budget before you decide." },
+      { type: "h3", text: "Which exchange rate should I use?" },
+      { type: "p", text: "Use the mid-market rate to get a quick sense of the value, then check the rate your bank or transfer service offers, since that is what you will actually receive." },
+      { type: "h3", text: "Does gratuity matter when comparing offers?" },
+      { type: "p", text: "Yes. It is a lump sum paid when you leave, and it is generally calculated on basic salary. Two offers with the same total can pay different gratuity if their basic salaries differ." },
+
+      { type: "cta", label: "Build my Gulf-ready CV free →", href: "/builder" },
+      { type: "h2", text: "Keep reading" },
+      { type: "ul", items: [
+        "[What are you really worth in the Gulf?](/blog/gulf-vs-india-salary-what-are-you-worth)",
+        "[How to get a job in Dubai from India](/blog/get-job-in-dubai-from-india-2026)",
+        "[UAE CV format 2026](/blog/uae-cv-format-2026)",
+      ] },
+    ],
   },
   {
     title: "How to Beat the LinkedIn ATS in 2026",
