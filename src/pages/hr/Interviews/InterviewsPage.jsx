@@ -33,21 +33,24 @@
 // page through the legacy column fallback.
 // =============================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import {
   formatTimeIn, wordForTz, dualTimeParts, hrTimeZone, inferCandidateZone,
 } from "../../../lib/hr/interviewTz";
-import InterviewKitCard from "../../../components/hr/InterviewKitCard";
-import ScheduleInterviewModal from "../../../components/hr/ScheduleInterviewModal";
-import CompareCandidates from "../../../components/hr/CompareCandidates";
 import { trackHr } from "../../../lib/analytics/hrEvents";
 import "../../../components/hr/surfaceGlass.css";
 import "../PostJob/postJob.css";
 import "../Jobs/jobPipeline.css";
 import "./interviewsPage.css";
+
+// Load heavier interview tools only when a recruiter opens them. This keeps
+// the initial Interviews route bundle smaller and makes the tab interactive sooner.
+const InterviewKitCard = lazy(() => import("../../../components/hr/InterviewKitCard"));
+const ScheduleInterviewModal = lazy(() => import("../../../components/hr/ScheduleInterviewModal"));
+const CompareCandidates = lazy(() => import("../../../components/hr/CompareCandidates"));
 
 const EASE = [0.4, 0, 0.2, 1];
 const EASE_CSS = "cubic-bezier(0.4, 0, 0.2, 1)";
@@ -145,7 +148,6 @@ export default function InterviewsPage() {
 
   const [user, setUser] = useState(null);
   const [rows, setRows] = useState(null); // null = loading
-  const [everCount, setEverCount] = useState(null);
   const [readyCount, setReadyCount] = useState(0);
   const [tick, setTick] = useState(0);
   const [now, setNow] = useState(() => new Date());
@@ -168,7 +170,11 @@ export default function InterviewsPage() {
 
   useEffect(() => {
     let live = true;
-    supabase.auth.getUser().then(({ data }) => { if (live) setUser(data?.user || null); });
+    // getSession reads the existing local auth session first, avoiding an
+    // extra user-validation network round trip before the interview query.
+    supabase.auth.getSession()
+      .then(({ data }) => { if (live) setUser(data?.session?.user || null); })
+      .catch(() => { if (live) setUser(null); });
     return () => { live = false; };
   }, []);
 
@@ -196,28 +202,22 @@ export default function InterviewsPage() {
       const list = (data || []).filter((iv) => iv.status !== "cancelled");
       setRows(list);
 
-      // Zero interviews in the window: older ones still mean she has
-      // used this page, so the invitation shows only on a true zero.
-      if (list.length === 0) {
-        const { count } = await supabase
-          .from("interviews")
-          .select("id", { count: "exact", head: true })
-          .eq("hr_id", user.id);
-        if (live) setEverCount(count || 0);
-      } else {
-        setEverCount(list.length);
-      }
-
-      // The Upcoming empty state names the real To interview count.
+      // Render the agenda as soon as the interview query finishes. The
+      // optional candidate-ready count is deliberately non-blocking.
       const hasUpcoming = list.some(
         (iv) => iv.status === "scheduled" && new Date(iv.scheduled_at) >= new Date(startOfDay(new Date()).getTime() + 24 * 3600 * 1000),
       );
-      if (!hasUpcoming) {
-        const { count } = await supabase
+      if (hasUpcoming) {
+        setReadyCount(0);
+      } else {
+        supabase
           .from("applications")
           .select("id", { count: "exact", head: true })
-          .eq("status", "ready");
-        if (live) setReadyCount(count || 0);
+          .eq("status", "ready")
+          .then(({ count, error: countError }) => {
+            if (live && !countError) setReadyCount(count || 0);
+          })
+          .catch(() => {});
       }
     })();
     return () => { live = false; };
@@ -493,7 +493,9 @@ export default function InterviewsPage() {
   };
 
   const loading = rows === null;
-  const zero = !loading && rows.length === 0 && everCount === 0;
+  // Show the designed empty state whenever none of the visible sections has
+  // interviews, including accounts whose older records fall outside the 7-day window.
+  const zero = !loading && today.length === 0 && upcoming.length === 0 && past.length === 0;
   const prepApp = prepFor?.applications || null;
 
   return (
@@ -532,8 +534,8 @@ export default function InterviewsPage() {
             </div>
             <div className="ivx-zero__content">
               <span className="ivx-zero__eyebrow"><span className="ivx-zero__eyebrow-dot" /> YOUR INTERVIEW WORKSPACE</span>
-              <h2 className="ivx-zero__title" id="ivx-zero-title">No interviews scheduled yet</h2>
-              <p className="ivx-zero__sub">When you schedule interviews with your candidates, they’ll appear here. Keep every conversation and next step in one place.</p>
+              <h2 className="ivx-zero__title" id="ivx-zero-title">No interviews to show right now</h2>
+              <p className="ivx-zero__sub">Your scheduled conversations and preparation tools will appear here when you book an interview. Keep every next step in one place.</p>
               <button type="button" className="ivx-btn ivx-btn--ink ivx-zero__cta" onClick={() => navigate("/employer/candidates")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                 Browse candidates
@@ -546,7 +548,7 @@ export default function InterviewsPage() {
               </button>
             </div>
           </div>
-          <p className="ivx-zero__footnote">Your scheduled interviews, preparation notes, and past verdicts will appear here automatically.</p>
+          <p className="ivx-zero__footnote">Your interview schedule and preparation tools will appear here when you need them.</p>
         </section>
       )}
 
@@ -726,38 +728,48 @@ export default function InterviewsPage() {
               {longDay(new Date(prepFor.scheduled_at))}, {timeLinesOf(prepFor, hrTz).t1}
               {timeLinesOf(prepFor, hrTz).t2 ? `, ${timeLinesOf(prepFor, hrTz).t2}` : ""}
             </p>
-            <InterviewKitCard
-              cacheKey={`${prepApp?.candidate_id || prepApp?.id || prepFor.id}:${prepFor.job_id}`}
-              cvSnapshot={prepApp?.cv_snapshot || null}
-              jobId={prepFor.job_id}
-              candidateName={prepApp?.candidate_name || ""}
-              jobTitle={prepFor.jobs?.title || ""}
-              hrId={user?.id}
-              applicationId={prepFor.application_id}
-            />
+            <Suspense fallback={<div className="ivx-loading" role="status">Loading interview prep…</div>}>
+              <InterviewKitCard
+                cacheKey={`${prepApp?.candidate_id || prepApp?.id || prepFor.id}:${prepFor.job_id}`}
+                cvSnapshot={prepApp?.cv_snapshot || null}
+                jobId={prepFor.job_id}
+                candidateName={prepApp?.candidate_name || ""}
+                jobTitle={prepFor.jobs?.title || ""}
+                hrId={user?.id}
+                applicationId={prepFor.application_id}
+              />
+            </Suspense>
           </div>
         </div>
       )}
 
       {/* ── Reschedule: the shipped schedule modal, prefilled ── */}
-      <ScheduleInterviewModal
-        open={!!reschedOf}
-        onClose={() => setReschedOf(null)}
-        application={reschedOf?.applications || null}
-        job={reschedOf?.jobs ? { id: reschedOf.jobs.id, title: reschedOf.jobs.title, location: reschedOf.jobs.location, market: reschedOf.jobs.market } : null}
-        hrId={user?.id}
-        hrEmail={user?.email}
-        rescheduleOf={reschedOf}
-        onScheduled={() => setTick((t) => t + 1)}
-      />
+      {reschedOf && (
+        <Suspense fallback={<div className="ivx-loading" role="status">Opening scheduler…</div>}>
+          <ScheduleInterviewModal
+            open={!!reschedOf}
+            onClose={() => setReschedOf(null)}
+            application={reschedOf?.applications || null}
+            job={reschedOf?.jobs ? { id: reschedOf.jobs.id, title: reschedOf.jobs.title, location: reschedOf.jobs.location, market: reschedOf.jobs.market } : null}
+            hrId={user?.id}
+            hrEmail={user?.email}
+            rescheduleOf={reschedOf}
+            onScheduled={() => setTick((t) => t + 1)}
+          />
+        </Suspense>
+      )}
 
       {/* ── Compare: the shipped side by side compare ── */}
-      <CompareCandidates
-        open={!!compareFor && (compareFor.cands || []).length >= 2}
-        onClose={() => setCompareFor(null)}
-        candidates={compareFor?.cands || []}
-        from="past_interviews"
-      />
+      {compareFor && (compareFor.cands || []).length >= 2 && (
+        <Suspense fallback={<div className="ivx-loading" role="status">Opening candidate comparison…</div>}>
+          <CompareCandidates
+            open
+            onClose={() => setCompareFor(null)}
+            candidates={compareFor.cands}
+            from="past_interviews"
+          />
+        </Suspense>
+      )}
 
       {/* ── Start veil: the row expanding into the companion ── */}
       {veil && <div className="ivx-veil" ref={veilRef} aria-hidden="true" />}
