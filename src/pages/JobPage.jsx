@@ -16,6 +16,8 @@ import "./jobs/jobBoard.css"; // .jb-root tokens + dark + shared classes
 import "./jobs/jobPage.css";
 
 const RETURN_PATH_KEY = "cvp_return_path";
+// Must match CONFIDENTIAL_COMPANY in src/services/postJob.js (not imported here to keep this page light).
+const CONFIDENTIAL_COMPANY = "Confidential Company";
 
 /* ───────── Inline icons ───────── */
 const IcBack = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>);
@@ -117,16 +119,24 @@ export default function JobPage() {
         // analytics only, never rendered — builder is a thenable, so guard with Promise.resolve
         Promise.resolve(supabase.rpc("increment_job_views", { p_job_id: jobId })).then(() => {}, () => {});
 
-        // Verified + authoritative name from the public view (only exposes
-        // user_id/verified/company_name). "Roles open now" from the public
-        // jobs table. Both truthful; anything unreadable simply hides.
+        // Verified badge + a FALLBACK name from the public view (only exposes
+        // user_id/verified/company_name). The name saved on the job itself always
+        // wins (see `company` below), so a job posted as "Confidential Company"
+        // never shows the HR profile's name. "Roles open now" counts only roles
+        // for the SAME company, and is hidden for confidential jobs. Anything
+        // unreadable simply hides.
         try {
           const { data: hp } = await supabase.from("hr_public_profiles").select("verified, company_name").eq("user_id", data.hr_id).maybeSingle();
           if (live && hp) { setVerified(!!hp.verified); setCompanyName(hp.company_name || null); }
         } catch { /* pre-migration: no badge, safe default */ }
         try {
-          const { count } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("hr_id", data.hr_id).eq("source", "hr_portal").in("status", ["active", "published"]);
-          if (live) setOpenRoles(count ?? null);
+          const jobCompany = (data.company || "").trim();
+          if (jobCompany && jobCompany !== CONFIDENTIAL_COMPANY) {
+            const { count } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("hr_id", data.hr_id).eq("source", "hr_portal").eq("company", jobCompany).in("status", ["active", "published"]);
+            if (live) setOpenRoles(count ?? null);
+          } else if (live) {
+            setOpenRoles(null); // confidential: don't group or reveal the employer's other roles
+          }
         } catch { /* omit rather than fake */ }
       } catch {
         if (live) { setNotFound(true); setLoading(false); }
@@ -152,7 +162,8 @@ export default function JobPage() {
 
   const hasCv = !!cvBlob;
   const needsVisa = job ? roleNeedsVisa(job) : false;
-  const company = companyName || job?.company || "the employer";
+  // The company saved on the job wins; the HR profile name is only a fallback for old rows with none.
+  const company = (job?.company || "").trim() || companyName || "the employer";
 
   const easyMatch = useMemo(() => {
     if (!job || !cvBlob) return null;
