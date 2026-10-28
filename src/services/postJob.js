@@ -19,42 +19,29 @@ import { supabase } from "../appSupabaseClient";
 import { marketFromCurrency } from "../pages/hr/PostJob/market";
 import { fetchEntitlement } from "../lib/employer/entitlement";
 
+// Shown on the board when the HR leaves the company name blank. The jobs.company
+// column is NOT NULL, so a hidden company is stored as this label.
+export const CONFIDENTIAL_COMPANY = "Confidential Company";
+
 // SQLSTATE raised by hr_enforce_job_limit when the cap is hit. Used to
 // recognise the database's own refusal and surface its message verbatim
 // rather than a generic failure.
 export const JOB_LIMIT_SQLSTATE = "HR001";
 
 /**
- * Resolve the company name to stamp on the listing. Order of preference:
- *   1. What the HR entered/confirmed in the wizard this session (required
- *      field on the Start step — the one moment the name actually matters).
- *   2. hr_profiles.company_name (a returning HR whose profile already has it).
- *   3. user.user_metadata.company_name (set during HR onboarding).
+ * Resolve the company name to stamp on the listing.
+ *   1. What the HR typed in the wizard's (optional) Company name field.
+ *   2. Otherwise CONFIDENTIAL_COMPANY.
  *
- * There is deliberately NO email-domain fallback. Deriving the name from the
- * address ("gmail.com" → "Gmail") stamped a false credibility signal — and
- * sometimes a third-party trademark — onto public Dubai job postings. When we
- * genuinely have no name we return "" and submitJob refuses the post, rather
- * than inventing one. Returns "" only when every source is empty.
+ * There is deliberately NO fallback to hr_profiles.company_name or the user's
+ * metadata: a blank field means the HR chose not to disclose, and silently
+ * stamping their profile company on the public listing would defeat that.
+ * There is also no email-domain fallback ("gmail.com" -> "Gmail" stamped a
+ * false credibility signal onto public postings).
  */
-async function resolveCompanyName(user, job) {
+function resolveCompanyName(job) {
   const typed = (job?.companyName || "").trim();
-  if (typed) return typed;
-  if (user?.id) {
-    try {
-      const { data } = await supabase
-        .from("hr_profiles")
-        .select("company_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data?.company_name) return data.company_name;
-    } catch {
-      // Table may not exist yet, or RLS may block — fall through.
-    }
-  }
-  const meta = user?.user_metadata || {};
-  if (meta.company_name) return meta.company_name;
-  return "";
+  return typed || CONFIDENTIAL_COMPANY;
 }
 
 /**
@@ -158,12 +145,7 @@ export async function submitJob({ user, job }) {
     throw err;
   }
 
-  const companyName = await resolveCompanyName(user, job);
-  if (!companyName) {
-    const err = new Error("Add your company name before posting — it's the first thing candidates see.");
-    err.code = "no_company";
-    throw err;
-  }
+  const companyName = resolveCompanyName(job);
   const payload = buildPayload(job, { hrId: user.id, companyName });
 
   const { data, error } = await supabase

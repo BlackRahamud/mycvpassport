@@ -49,11 +49,11 @@ export default function StartStep({ value, onChange, onContinue }) {
     onChange({ ...value, [field]: v });
   };
 
-  const companyMissing = !(value.companyName || "").trim();
+  // Company name is optional: blank = "Confidential Company" (applied in services/postJob.js).
   const titleMissing = !(value.jobTitle || "").trim();
 
   const handleContinue = () => {
-    if (companyMissing || titleMissing) { setShowErrors(true); return; }
+    if (titleMissing) { setShowErrors(true); return; }
     onContinue();
   };
 
@@ -75,20 +75,19 @@ export default function StartStep({ value, onChange, onContinue }) {
       <motion.hr className="pj-divider" variants={itemVariants} />
 
       <motion.div className="pj-field" variants={itemVariants}>
-        <label className="pj-label" htmlFor="pj-company">Company name</label>
+        <label className="pj-label" htmlFor="pj-company">Company name <span className="pj-label-hint">(optional)</span></label>
         <input
           id="pj-company"
           className="pj-input"
           type="text"
           placeholder="The name candidates will see"
           value={value.companyName || ""}
-          onChange={(e) => { setShowErrors(false); setField("companyName")(e); }}
-          aria-invalid={showErrors && companyMissing}
+          onChange={setField("companyName")}
           autoComplete="organization"
         />
-        {showErrors && companyMissing && (
-          <div className="pj-field-error">Add your company name — it&rsquo;s the first thing candidates see on the board.</div>
-        )}
+        <div style={{ marginTop: 6, fontSize: 12, color: "var(--pj-muted)" }}>
+          Leave blank to keep your company confidential. Candidates will see &ldquo;Confidential Company&rdquo;.
+        </div>
       </motion.div>
 
       <motion.div className="pj-field" variants={itemVariants}>
