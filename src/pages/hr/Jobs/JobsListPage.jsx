@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import JobLimitBanner, { JobCountChip } from "../../../components/hr/JobLimitBanner";
@@ -26,11 +27,58 @@ const TrashIc = ({ size = 15 }) => (
     <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
   </svg>
 );
+const MoreIc = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+  </svg>
+);
 const SearchIc = () => (
   <svg className="hjl-search__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 );
+
+/* ───────── 3-dot row menu (rendered in a portal so the table never clips it) ───────── */
+function JobMenu({ anchorRect, label, onClose, onDelete }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const onDown = (e) => {
+      if (ref.current && ref.current.contains(e.target)) return;
+      if (e.target.closest && e.target.closest("[data-hjl-more]")) return; // the dots button toggles itself
+      onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onClose, true);
+    window.addEventListener("resize", onClose);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("resize", onClose);
+    };
+  }, [onClose]);
+  if (!anchorRect) return null;
+  const W = 184;
+  const H = 52;
+  const flip = anchorRect.bottom + H + 12 > window.innerHeight;
+  const style = {
+    position: "fixed",
+    top: flip ? Math.max(8, anchorRect.top - H - 6) : anchorRect.bottom + 6,
+    left: Math.max(8, Math.min(anchorRect.right - W, window.innerWidth - W - 8)),
+    width: W,
+    zIndex: 100,
+  };
+  return createPortal(
+    <div ref={ref} className="hjl-menu" role="menu" aria-label="Job actions" style={style}>
+      <button type="button" role="menuitem" className="hjl-menu__item hjl-menu__item--danger" onClick={onDelete}>
+        <TrashIc size={14} /> {label}
+      </button>
+    </div>,
+    document.body,
+  );
+}
 
 /* ───────── Helpers ───────── */
 function ts(s) {
@@ -143,8 +191,10 @@ export default function JobsListPage() {
   const [upgrade, setUpgrade] = useState(false);
   const [trialEnded, setTrialEnded] = useState(false);
   const [jobsTick, setJobsTick] = useState(0); 
-  const [deletePool, setDeletePool] = useState(null); 
-  const [deleteCount, setDeleteCount] = useState(null); 
+  const [menu, setMenu] = useState(null); // { job, rect } for the open 3-dot menu
+  const [deleteJob, setDeleteJob] = useState(null); // job (or pool) waiting for delete confirmation
+  const [deleteCount, setDeleteCount] = useState(null); // null = checking, -1 = couldn't check
+  const [deleteOffers, setDeleteOffers] = useState(0);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteErr, setDeleteErr] = useState(null);
   const [agg, setAgg] = useState(null); 
@@ -245,32 +295,60 @@ export default function JobsListPage() {
     return () => { live = false; };
   }, [view, user?.id, jobsTick]);
 
-  const openDeletePool = useCallback(async (job) => {
-    setDeletePool(job); setDeleteCount(null); setDeleteErr(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  const openDelete = useCallback(async (job) => {
+    setMenu(null);
+    setDeleteJob(job); setDeleteCount(null); setDeleteOffers(0); setDeleteErr(null);
     try {
-      const { count } = await supabase
-        .from("applications").select("id", { count: "exact", head: true })
-        .eq("job_id", job.id);
-      setDeleteCount(count || 0);
-    } catch { setDeleteCount(0); }
+      const { data, error: e } = await supabase
+        .from("applications").select("id, status")
+        .eq("job_id", job.id).limit(5000);
+      if (e) throw e;
+      const rows = data || [];
+      setDeleteCount(rows.length);
+      setDeleteOffers(rows.filter((r) => r.status === "offered").length);
+    } catch { setDeleteCount(-1); }
   }, []);
 
-  const confirmDeletePool = useCallback(async () => {
-    if (!deletePool || deleteBusy || !user?.id) return;
+  const confirmDelete = useCallback(async () => {
+    if (!deleteJob || deleteBusy || !user?.id) return;
     setDeleteBusy(true); setDeleteErr(null);
     try {
-      const { error: e } = await supabase
+      // One delete on the jobs table. The job board reads the same table, and the
+      // database cascades applications, interviews, notifications, etc.
+      const { data, error: e } = await supabase
         .from("jobs").delete()
-        .eq("id", deletePool.id).eq("hr_id", user.id).eq("kind", "pool");
+        .eq("id", deleteJob.id).eq("hr_id", user.id)
+        .select("id");
       if (e) throw e;
-      setDeletePool(null);
+      if (!data || data.length === 0) throw new Error("Couldn't delete this job. Refresh the page and try again.");
+
+      const gone = deleteJob.id;
+      setJobs((prev) => (Array.isArray(prev) ? prev.filter((x) => x.id !== gone) : prev));
+      try {
+        ["open", "past", "pools"].forEach((v) => {
+          const k = `cvp_jobs_cache_${user.id}_${v}`;
+          const raw = sessionStorage.getItem(k);
+          if (!raw) return;
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) sessionStorage.setItem(k, JSON.stringify(arr.filter((x) => x.id !== gone)));
+        });
+      } catch { /* private mode */ }
+      setAgg((prev) => {
+        if (!prev) return prev;
+        const m = new Map(prev);
+        m.delete(gone);
+        return m;
+      });
+      setDeleteJob(null);
       setJobsTick((t) => t + 1);
     } catch (e) {
       setDeleteErr(e.message || "Couldn't delete, try again.");
     } finally {
       setDeleteBusy(false);
     }
-  }, [deletePool, deleteBusy, user?.id]);
+  }, [deleteJob, deleteBusy, user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -342,6 +420,24 @@ export default function JobsListPage() {
       sub: dateLine,
     };
   }, [firstRun, firstName]);
+
+  const isPool = deleteJob?.kind === "pool";
+  const hasCandidates = deleteCount !== null && deleteCount !== 0;
+  let deleteBody = "";
+  if (deleteCount === null) {
+    deleteBody = `Checking how many candidates are on this ${isPool ? "pool" : "job"}…`;
+  } else if (isPool) {
+    deleteBody = deleteCount > 0
+      ? `This will remove ${deleteCount} candidate${deleteCount === 1 ? "" : "s"} in this pool. Move them to a job first if you want to keep them.`
+      : "This pool has no candidates. Deleting it cannot be undone.";
+  } else if (deleteCount === -1) {
+    deleteBody = "We couldn't check the candidates on this job. Deleting it removes it from your HR portal and the job board, and cannot be undone.";
+  } else if (deleteCount === 0) {
+    deleteBody = "This removes the job from your HR portal and the job board. This cannot be undone.";
+  } else {
+    deleteBody = `This job has ${deleteCount} candidate${deleteCount === 1 ? "" : "s"} in its pipeline${deleteOffers > 0 ? `, including ${deleteOffers} with an open offer` : ""}. Deleting it removes the job from your HR portal and the job board, and the candidates will no longer be linked to it. This cannot be undone.`;
+  }
+  const deleteLabel = isPool ? "Delete pool" : hasCandidates ? "Delete anyway" : "Delete job";
 
   return (
     <div className="hjl-root">
@@ -525,7 +621,7 @@ export default function JobsListPage() {
                   role="button"
                   tabIndex={0}
                   onClick={() => navigate(`/employer/jobs/${j.id}`)}
-                  onKeyDown={(e) => { if (e.key === "Enter") navigate(`/employer/jobs/${j.id}`); }}
+                  onKeyDown={(e) => { if (e.target === e.currentTarget && e.key === "Enter") navigate(`/employer/jobs/${j.id}`); }}
                   initial={reduce ? false : { opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1], delay: Math.min(i * 0.025, 0.18) }}
@@ -546,23 +642,27 @@ export default function JobsListPage() {
                         ))}
                   </div>
                   <div className="hjl-trow__action">
-                    {view === "pools" && (
-                      <button
-                        type="button"
-                        className="hjl-act-del"
-                        title="Delete pool"
-                        aria-label={`Delete ${j.title} pool`}
-                        onClick={(e) => { e.stopPropagation(); openDeletePool(j); }}
-                      >
-                        <TrashIc />
-                      </button>
-                    )}
                     <button
                       type="button"
                       className={`hjl-act hjl-act--${sig.action.variant}`}
                       onClick={(e) => { e.stopPropagation(); navigate(sig.action.to); }}
                     >
                       {sig.action.label}
+                    </button>
+                    <button
+                      type="button"
+                      className="hjl-act-more"
+                      data-hjl-more
+                      aria-label={`More actions for ${j.title}`}
+                      aria-haspopup="menu"
+                      aria-expanded={menu?.job?.id === j.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMenu((m) => (m?.job?.id === j.id ? null : { job: j, rect }));
+                      }}
+                    >
+                      <MoreIc />
                     </button>
                   </div>
                 </motion.div>
@@ -577,12 +677,12 @@ export default function JobsListPage() {
       </main>
 
       <AnimatePresence>
-        {deletePool && (
+        {deleteJob && (
           <motion.div
-            role="dialog" aria-modal="true" aria-label="Delete pool"
+            role="dialog" aria-modal="true" aria-label={isPool ? "Delete pool" : "Delete job"}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            onClick={() => { if (!deleteBusy) setDeletePool(null); }}
+            onClick={() => { if (!deleteBusy) setDeleteJob(null); }}
             style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(20,19,31,0.42)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           >
             <motion.div
@@ -594,30 +694,37 @@ export default function JobsListPage() {
               style={{ width: "min(420px, 100%)", background: "var(--pj-surface)", border: "1px solid var(--pj-border)", borderRadius: 16, boxShadow: "var(--pj-shadow-card)", padding: 20 }}
             >
               <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "var(--pj-text)" }}>
-                Delete the &quot;{deletePool.title || "Untitled"}&quot; pool?
+                {isPool
+                  ? <>Delete the &quot;{deleteJob.title || "Untitled"}&quot; pool?</>
+                  : <>Delete &quot;{deleteJob.title || "Untitled"}&quot;?</>}
               </h3>
               <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--pj-text-soft)", lineHeight: 1.5 }}>
-                {deleteCount === null
-                  ? "Checking how many candidates are in this pool…"
-                  : deleteCount > 0
-                    ? `This will remove ${deleteCount} candidate${deleteCount === 1 ? "" : "s"} in this pool. Move them to a job first if you want to keep them.`
-                    : "This pool has no candidates. Deleting it cannot be undone."}
+                {deleteBody}
               </p>
               {deleteErr && <p role="status" style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--hjl-pass, #D85A30)", fontWeight: 600 }}>{deleteErr}</p>}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setDeletePool(null)} disabled={deleteBusy}
+                <button type="button" onClick={() => setDeleteJob(null)} disabled={deleteBusy}
                   style={{ height: 38, padding: "0 16px", borderRadius: 9, border: "1px solid var(--pj-border)", background: "#FFFFFF", color: "var(--pj-text)", font: "inherit", fontFamily: "var(--pj-font)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                   Cancel
                 </button>
-                <button type="button" onClick={confirmDeletePool} disabled={deleteBusy || deleteCount === null}
+                <button type="button" onClick={confirmDelete} disabled={deleteBusy || deleteCount === null}
                   style={{ height: 38, padding: "0 16px", borderRadius: 9, border: 0, background: "var(--hjl-pass, #D85A30)", color: "#FFFFFF", font: "inherit", fontFamily: "var(--pj-font)", fontSize: 13, fontWeight: 700, cursor: (deleteBusy || deleteCount === null) ? "not-allowed" : "pointer", opacity: (deleteBusy || deleteCount === null) ? 0.6 : 1 }}>
-                  {deleteBusy ? "Deleting…" : "Delete pool"}
+                  {deleteBusy ? "Deleting…" : deleteLabel}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {menu && (
+        <JobMenu
+          anchorRect={menu.rect}
+          label={menu.job.kind === "pool" ? "Delete pool" : "Delete job"}
+          onClose={closeMenu}
+          onDelete={() => openDelete(menu.job)}
+        />
+      )}
 
       <FoundationUpgradeSheet
         open={upgrade}
