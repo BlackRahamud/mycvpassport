@@ -5,6 +5,7 @@ import { fetchRecruiterStatus, completeEmployerOnboarding } from "../../lib/empl
 import { trackHr, beginHrSession } from "../../lib/analytics/hrEvents";
 import "../../pages/hr/PostJob/postJob.css"; // --pj-* tokens
 import "../../pages/employer/employerLanding.css"; // emp- button/card styles
+import "./recruiterAuthLoading.css"; // CVPassport Hiring Portal account-check screen
 
 /**
  * Layout guard for the employer portal (/employer/jobs and friends).
@@ -95,7 +96,33 @@ export default function RequireRecruiter({ children }) {
     <div className="emp-root">
       <main className="emp-onb-wrap">
         {phase === "checking" ? (
-          <p className="emp-onb-checking" role="status">Checking your account…</p>
+          <section className="cvp-auth-loading" role="status" aria-live="polite" aria-label="Checking your employer account">
+            <div className="cvp-auth-loading__brand" aria-label="CVPassport Hiring Portal">
+              <span className="cvp-auth-loading__mark" aria-hidden="true">
+                <svg viewBox="0 0 28 28" focusable="false">
+                  <path d="M4 6.5 11.5 14 4 21.5M11 6.5 18.5 14 11 21.5M18 6.5 25.5 14 18 21.5" />
+                </svg>
+              </span>
+              <span className="cvp-auth-loading__wordmark">CVPassport</span>
+              <span className="cvp-auth-loading__portal">Hiring Portal</span>
+            </div>
+
+            <div className="cvp-auth-loading__visual" aria-hidden="true">
+              <span className="cvp-auth-loading__halo" />
+              <span className="cvp-auth-loading__track" />
+              <span className="cvp-auth-loading__ring" />
+              <span className="cvp-auth-loading__icon">
+                <svg viewBox="0 0 32 32" focusable="false">
+                  <rect x="4.5" y="10" width="23" height="17" rx="3" />
+                  <path d="M11 10V7.5A2.5 2.5 0 0 1 13.5 5h5A2.5 2.5 0 0 1 21 7.5V10M4.5 16h23M13.5 16v3h5v-3" />
+                </svg>
+              </span>
+            </div>
+
+            <h1 className="cvp-auth-loading__title">Checking your account<span className="cvp-auth-loading__ellipsis">…</span></h1>
+            <p className="cvp-auth-loading__message">Just a moment while we confirm your employer access.</p>
+            <span className="cvp-auth-loading__sr-only">Please wait while we verify your access.</span>
+          </section>
         ) : phase === "blocked" ? (
           <div className="emp-onb-card" role="alert">
             <h1>This area is for employers</h1>
