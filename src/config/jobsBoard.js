@@ -10,7 +10,7 @@
 // switch has to be greppable, and it has to behave identically on the
 // server-rendered snapshot, in the client bundle and in the harness.
 
-export const JOBS_BOARD_LIVE = false;
+export const JOBS_BOARD_LIVE = true;
 
 // Routes that cannot work until the board is live. `/jobs/:id` is NOT here
 // on purpose — HR shares those direct links with candidates to apply, and
