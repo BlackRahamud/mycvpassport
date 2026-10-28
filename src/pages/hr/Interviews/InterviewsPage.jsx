@@ -513,18 +513,41 @@ export default function InterviewsPage() {
       {loading && <div className="ivx-loading" role="status">Loading your interviews…</div>}
 
       {zero && (
-        <div className="ivx-zero">
-          <span className="ivx-zero__mark" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          </span>
-          <div className="ivx-zero__title">Your interviews will live here</div>
-          <p className="ivx-zero__sub">Schedule one from any candidate and it shows up on this page, today, upcoming, and done.</p>
-          <button type="button" className="ivx-btn ivx-btn--ink" onClick={() => navigate("/employer/candidates")}>
-            Go to candidates
-          </button>
-        </div>
+        <section className="ivx-zero" aria-labelledby="ivx-zero-title">
+          <div className="ivx-zero__hero">
+            <div className="ivx-zero__visual" aria-hidden="true">
+              <div className="ivx-zero__sun" />
+              <div className="ivx-zero__plant ivx-zero__plant--one" />
+              <div className="ivx-zero__plant ivx-zero__plant--two" />
+              <div className="ivx-zero__desk" />
+              <div className="ivx-zero__laptop">
+                <span />
+              </div>
+              <div className="ivx-zero__notebook" />
+              <div className="ivx-zero__mug">CVp</div>
+              <div className="ivx-zero__calendar">
+                <span className="ivx-zero__calendar-top" />
+                <span className="ivx-zero__calendar-grid"><i /><i /><i /><i /><i /><i /></span>
+              </div>
+            </div>
+            <div className="ivx-zero__content">
+              <span className="ivx-zero__eyebrow"><span className="ivx-zero__eyebrow-dot" /> YOUR INTERVIEW WORKSPACE</span>
+              <h2 className="ivx-zero__title" id="ivx-zero-title">No interviews scheduled yet</h2>
+              <p className="ivx-zero__sub">When you schedule interviews with your candidates, they’ll appear here. Keep every conversation and next step in one place.</p>
+              <button type="button" className="ivx-btn ivx-btn--ink ivx-zero__cta" onClick={() => navigate("/employer/candidates")}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                Browse candidates
+              </button>
+              <div className="ivx-zero__divider"><span />or<span /></div>
+              <button type="button" className="ivx-zero__secondary" onClick={() => navigate("/employer/candidates")}>
+                <span className="ivx-zero__secondary-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 8v6M17 11h6"/></svg></span>
+                <span className="ivx-zero__secondary-copy"><strong>Choose a candidate</strong><small>Find someone ready to interview</small></span>
+                <svg className="ivx-zero__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+          <p className="ivx-zero__footnote">Your scheduled interviews, preparation notes, and past verdicts will appear here automatically.</p>
+        </section>
       )}
 
       {!loading && !zero && (
