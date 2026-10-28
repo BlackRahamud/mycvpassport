@@ -554,27 +554,47 @@ export default function InterviewsPage() {
 
       {!loading && !zero && (
         <div className="ivx-body">
-          {/* Live now banner — surface two of two */}
-          {liveIv && (
-            <motion.div
-              className="ivx-live"
-              initial={reduce ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: EASE }}
-            >
-              <span className="ivx-live__dot" aria-hidden="true" />
-              <span className="ivx-live__who">
-                {new Date(liveIv.scheduled_at) <= now ? "Live now" : "Starting soon"}, {liveIv.applications?.candidate_name || "your candidate"}
-              </span>
-              <span className="ivx-live__sub">
-                {liveIv.jobs?.title ? `${liveIv.jobs.title}, ` : ""}
-                {new Date(liveIv.scheduled_at) <= now ? "started" : "starts"} {formatTimeIn(new Date(liveIv.scheduled_at), hrTz)} {wordForTz(hrTz)}
-              </span>
-              <button type="button" className="ivx-btn ivx-btn--ink" onClick={openCompanion(liveIv)}>
-                Open companion
-              </button>
-            </motion.div>
-          )}
+          {/* Live / imminent interview — retain the existing glass surface. */}
+          {liveIv && (() => {
+            const isLive = new Date(liveIv.scheduled_at).getTime() <= now.getTime();
+            return (
+              <motion.aside
+                className={`ivx-live ${isLive ? "ivx-live--active" : "ivx-live--soon"}`}
+                aria-label={isLive ? "Interview in progress" : "Interview starting soon"}
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: EASE }}
+              >
+                <span className="ivx-live__icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="6" width="13" height="12" rx="2" />
+                    <path d="m16 10 5-3v10l-5-3z" />
+                  </svg>
+                </span>
+                <div className="ivx-live__content">
+                  <div className="ivx-live__topline">
+                    <span className="ivx-live__eyebrow">{isLive ? "Interview in progress" : "Coming up next"}</span>
+                    <span className={`ivx-live__status ${isLive ? "ivx-live__status--active" : "ivx-live__status--soon"}`}>
+                      <span className="ivx-live__dot" aria-hidden="true" />
+                      {isLive ? "LIVE NOW" : "STARTING SOON"}
+                    </span>
+                  </div>
+                  <div className="ivx-live__who">{liveIv.applications?.candidate_name || "Your candidate"}</div>
+                  <div className="ivx-live__meta">
+                    {liveIv.jobs?.title && <span className="ivx-live__role">{liveIv.jobs.title}</span>}
+                    <span className="ivx-live__time">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                      {isLive ? "Started" : "Starts"} {formatTimeIn(new Date(liveIv.scheduled_at), hrTz)} {wordForTz(hrTz)}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" className="ivx-btn ivx-btn--ink ivx-live__action" onClick={openCompanion(liveIv)}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 10l5-3v10l-5-3z" /><rect x="3" y="6" width="12" height="12" rx="2" /></svg>
+                  Open interview
+                </button>
+              </motion.aside>
+            );
+          })()}
 
           {/* ── Today ── */}
           <section aria-label="Today">
