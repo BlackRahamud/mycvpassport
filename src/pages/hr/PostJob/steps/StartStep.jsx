@@ -43,6 +43,8 @@ const FIELD_OPTIONS = [
 export default function StartStep({ value, onChange, onContinue }) {
   const reduce = useReducedMotion();
   const [showErrors, setShowErrors] = useState(false);
+  const [fieldOpen, setFieldOpen] = useState(false);
+  const [activeFieldIndex, setActiveFieldIndex] = useState(() => Math.max(0, FIELD_OPTIONS.indexOf(value.department)));
 
   const setField = (field) => (e) => {
     const v = e?.target ? e.target.value : e;
@@ -109,16 +111,58 @@ export default function StartStep({ value, onChange, onContinue }) {
 
       <motion.div className="pj-field" variants={itemVariants}>
         <label className="pj-label" htmlFor="pj-field">Field <span className="pj-label-hint">(optional)</span></label>
-        <div className="pj-select-wrap">
-          <select
+        <div className={`pj-field-select${fieldOpen ? " is-open" : ""}`}>
+          <button
             id="pj-field"
-            className={`pj-select${value.department ? "" : " pj-select--placeholder"}`}
-            value={value.department || ""}
-            onChange={setField("department")}
+            type="button"
+            className={`pj-select pj-field-select__trigger${value.department ? "" : " pj-select--placeholder"}`}
+            aria-haspopup="listbox"
+            aria-expanded={fieldOpen}
+            aria-controls="pj-field-options"
+            onClick={() => {
+              const currentIndex = FIELD_OPTIONS.indexOf(value.department);
+              setActiveFieldIndex(currentIndex >= 0 ? currentIndex : 0);
+              setFieldOpen((open) => !open);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                setFieldOpen(true);
+                setActiveFieldIndex((i) => e.key === "ArrowDown" ? (i + 1) % FIELD_OPTIONS.length : (i - 1 + FIELD_OPTIONS.length) % FIELD_OPTIONS.length);
+              } else if (e.key === "Escape") {
+                setFieldOpen(false);
+              } else if (e.key === "Enter" && fieldOpen) {
+                e.preventDefault();
+                setField("department")(FIELD_OPTIONS[activeFieldIndex]);
+                setFieldOpen(false);
+              }
+            }}
           >
-            <option value="">Select a field</option>
-            {FIELD_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
+            <span>{value.department || "Select a field"}</span>
+            <span className="pj-field-select__chevron" aria-hidden="true" />
+          </button>
+          {fieldOpen && (
+            <div className="pj-field-select__menu" id="pj-field-options" role="listbox" aria-label="Choose a job field">
+              {FIELD_OPTIONS.map((field, index) => (
+                <button
+                  key={field}
+                  type="button"
+                  role="option"
+                  aria-selected={value.department === field}
+                  className={`pj-field-select__option${value.department === field ? " is-selected" : ""}${activeFieldIndex === index ? " is-active" : ""}`}
+                  onMouseEnter={() => setActiveFieldIndex(index)}
+                  onClick={() => {
+                    setField("department")(field);
+                    setActiveFieldIndex(index);
+                    setFieldOpen(false);
+                  }}
+                >
+                  <span>{field}</span>
+                  {value.department === field && <span className="pj-field-select__check" aria-hidden="true">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
 

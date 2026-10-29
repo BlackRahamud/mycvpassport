@@ -504,6 +504,43 @@
 
 .pj-select--placeholder { color: var(--pj-muted); }
 
+/* Custom Field dropdown — styled panel, independent of browser-native option UI. */
+.pj-field-select { position: relative; width: 100%; }
+.pj-field-select__trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  text-align: left; border: 1px solid transparent; background: var(--pj-input-bg);
+}
+.pj-field-select__trigger:hover { background: #F0F0F4; }
+.pj-field-select__trigger:focus-visible {
+  background: var(--pj-input-bg-focus); border-color: var(--pj-primary);
+  box-shadow: 0 0 0 4px var(--pj-primary-ring);
+}
+.pj-field-select__chevron {
+  flex: 0 0 auto; width: 8px; height: 8px; margin: -4px 3px 0 0;
+  border-right: 1.5px solid var(--pj-muted); border-bottom: 1.5px solid var(--pj-muted);
+  transform: rotate(45deg); transition: transform 180ms ease;
+}
+.pj-field-select.is-open .pj-field-select__chevron { margin-top: 4px; transform: rotate(225deg); }
+.pj-field-select__menu {
+  position: absolute; z-index: 50; top: calc(100% + 8px); left: 0; right: 0;
+  max-height: min(300px, 45vh); overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px; border: 1px solid rgba(255,255,255,.8); border-radius: 14px;
+  background: rgba(255,255,255,.94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 16px 42px rgba(31, 28, 60, .16), 0 2px 8px rgba(31, 28, 60, .06);
+  animation: pj-field-menu-in 140ms ease-out;
+}
+.pj-field-select__option {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  min-height: 38px; padding: 9px 11px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--pj-text); font: inherit; font-size: 13.5px; line-height: 1.35; text-align: left; cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.pj-field-select__option:hover, .pj-field-select__option.is-active { background: rgba(112, 88, 230, .09); }
+.pj-field-select__option.is-selected { background: rgba(112, 88, 230, .12); color: var(--pj-primary); font-weight: 600; }
+.pj-field-select__check { font-size: 14px; font-weight: 700; }
+@keyframes pj-field-menu-in { from { opacity: 0; transform: translateY(-4px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .pj-field-select__menu { animation: none; } .pj-field-select__chevron, .pj-field-select__option { transition: none; } }
+
 /* compact unit pill (e.g. "per Hour") */
 .pj-unit-pill {
   display: inline-flex;
