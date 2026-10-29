@@ -8,19 +8,11 @@
 @media(max-width:900px){.cvp-jobs-discovery{padding:28px 18px 38px}.cvp-jobs-discovery__hero{grid-template-columns:1fr;padding:27px 22px;gap:15px}.cvp-jobs-discovery__copy h2{max-width:680px;font-size:clamp(29px,6vw,40px)}.cvp-jobs-discovery__visual{min-height:220px;max-width:520px;width:100%;margin:0 auto}.cvp-jobs-discovery__search{grid-template-columns:1fr 1fr}.cvp-jobs-discovery__keyword{grid-column:1/-1;min-height:43px;border-bottom:1px solid #e7ebef}.cvp-jobs-discovery__market{border-left:0}.cvp-jobs-discovery__search-btn{min-height:42px}.cvp-jobs-discovery__cards{grid-template-columns:repeat(2,minmax(0,1fr))}.cvp-jobs-discovery__bottom{grid-template-columns:1fr 1fr}.cvp-jobs-discovery__bottom>a{grid-column:1/-1}}
 @media(max-width:560px){.cvp-jobs-discovery{padding:20px 12px 30px}.cvp-jobs-discovery__hero{padding:23px 16px;border-radius:20px}.cvp-jobs-discovery__copy h2{font-size:30px}.cvp-jobs-discovery__copy p{font-size:14px}.cvp-jobs-discovery__visual{min-height:205px}.cvp-jobs-discovery__region{width:66%;min-height:145px;padding:13px}.cvp-jobs-discovery__region--gulf{left:0}.cvp-jobs-discovery__region--india{right:0}.cvp-jobs-discovery__floating-note{right:0;top:-3px;padding:8px}.cvp-jobs-discovery__floating-note b{font-size:9px}.cvp-jobs-discovery__floating-note small{font-size:8px}.cvp-jobs-discovery__search{grid-template-columns:1fr;padding:6px}.cvp-jobs-discovery__keyword{grid-column:auto;border-bottom:1px solid #e7ebef}.cvp-jobs-discovery__market{min-height:42px;border-bottom:1px solid #e7ebef}.cvp-jobs-discovery__quicklinks{gap:6px}.cvp-jobs-discovery__quicklinks span{width:100%}.cvp-jobs-discovery__quicklinks button{font-size:11px;padding:7px 9px}.cvp-jobs-discovery__list-head{align-items:flex-start;flex-direction:column;margin-top:24px}.cvp-jobs-discovery__browse{align-self:flex-start}.cvp-jobs-discovery__cards{grid-template-columns:1fr}.cvp-jobs-discovery__job{padding:16px}.cvp-jobs-discovery__empty{align-items:flex-start;flex-wrap:wrap}.cvp-jobs-discovery__empty a{margin-left:58px}.cvp-jobs-discovery__bottom{grid-template-columns:1fr;padding:15px}.cvp-jobs-discovery__bottom>a{grid-column:auto;width:100%}}
 
-
-/* CVPassport job-search focus polish: replace the global amber ring only in this search bar.
-   Keep a restrained blue-grey keyboard focus indicator for accessibility. */
-.cvp-jobs-discovery__search input:focus,
-.cvp-jobs-discovery__search select:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: transparent !important;
-}
-.cvp-jobs-discovery__search input:focus-visible,
-.cvp-jobs-discovery__search select:focus-visible {
-  outline: 2px solid rgba(91, 120, 152, 0.55) !important;
-  outline-offset: 2px;
-  box-shadow: none !important;
-  border-color: transparent !important;
-}
+/* CVPassport destination-card photography (shared visual language with /jobs). */
+.cvp-jobs-discovery__region{isolation:isolate;background-size:cover;background-position:center;backdrop-filter:none}
+.cvp-jobs-discovery__region::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(105deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.72) 44%,rgba(255,255,255,.08) 100%)}
+.cvp-jobs-discovery__region--gulf{background-image:url("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1000&q=82");background-position:center 47%}
+.cvp-jobs-discovery__region--india{background-image:url("https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1000&q=82");background-position:center 52%}
+.cvp-jobs-discovery__region-icon,.cvp-jobs-discovery__region-title,.cvp-jobs-discovery__region-sub{position:relative;z-index:1;text-shadow:0 1px 10px rgba(255,255,255,.5)}
+.cvp-jobs-discovery__skyline{display:none}
+@media(max-width:560px){.cvp-jobs-discovery__region{min-height:138px}.cvp-jobs-discovery__region-sub{max-width:150px}}
