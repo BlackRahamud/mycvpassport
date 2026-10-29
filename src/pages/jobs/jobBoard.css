@@ -1023,3 +1023,13 @@
   [data-theme="dark"] .jp-cv-prompt p { color:#c7c6d4; }
   [data-theme="dark"] .jp-cv-prompt button { background:#282734; border-color:rgba(255,255,255,.12); color:#e6e8ef; }
   
+  /* Destination photography matches the homepage cards. */
+  .jb-region-card{isolation:isolate;background-size:cover;background-position:center;backdrop-filter:none}
+  .jb-region-card::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(105deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.74) 48%,rgba(255,255,255,.08) 100%)}
+  .jb-region-card--gulf{background-image:url("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1000&q=82");background-position:center 47%}
+  .jb-region-card--india{background-image:url("https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1000&q=82")}
+  .jb-region-card__icon,.jb-region-card b,.jb-region-card small{position:relative;z-index:1;text-shadow:0 1px 10px rgba(255,255,255,.55)}
+  .jb-region-skyline{display:none}
+  [data-theme="dark"] .jb-region-card::before{background:linear-gradient(105deg,rgba(30,29,41,.9) 0%,rgba(30,29,41,.64) 48%,rgba(30,29,41,.12) 100%)}
+  [data-theme="dark"] .jb-region-card b,[data-theme="dark"] .jb-region-card small{ text-shadow:0 1px 8px rgba(0,0,0,.35)}
+  
