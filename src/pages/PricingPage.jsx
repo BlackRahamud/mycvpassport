@@ -410,15 +410,26 @@ export default function PricingPage({ refreshProfile } = {}) {
   // from. The sessionStorage key stops a double fire for the same payment id.
   const handleRazorpayConfirmed = useCallback((info) => {
     try {
-      if (typeof window.gtag !== "function" || !info?.paymentId) return;
+      if (!info?.paymentId) return;
       const key = `cvp_purchase_${info.paymentId}`;
       if (window.sessionStorage.getItem(key)) return;
       window.sessionStorage.setItem(key, "1");
       const slug = razorpayCheckout?.plan;
-      const value = razorpayCheckout?.amount;
+      // getServerAmount() returns paise, while GA4 expects the major currency
+      // unit (rupees). Convert so ₹149 is recorded as 149, not 14900.
+      const valuePaise = razorpayCheckout?.amount;
+      const value = Number.isFinite(valuePaise) ? valuePaise / 100 : undefined;
+      logEvent("purchase_completed", {
+        plan: slug,
+        price: value,
+        currency: "INR",
+        gateway: "razorpay",
+        cta_location: window.location.pathname,
+      });
+      if (typeof window.gtag !== "function") return;
       window.gtag("event", "purchase", {
         transaction_id: info.paymentId,
-        value,
+        ...(value !== undefined ? { value } : {}),
         currency: "INR",
         items: [{
           item_id: slug,
@@ -709,7 +720,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                 "Job Match keywords",
                 "1 CV import, 30 AI rewrites a month",
               ],
-              cta: "Unlock my CV",
+              cta: "Unlock 3 premium downloads",
+              footnote: "One-time payment · no recurring subscription",
             },
             hunter: {
               role: "hero", id: "hunter", name: PLAN_META.active_hunter.name,
@@ -828,8 +840,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                         {c.cta}
                       </button>
                     )}
-                    {isHero && c.footnote ? (
-                      <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", marginTop: 12 }}>{c.footnote}</div>
+                    {c.footnote ? (
+                      <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", marginTop: 12, lineHeight: 1.45 }}>{c.footnote}</div>
                     ) : null}
                   </motion.div>
                 );
