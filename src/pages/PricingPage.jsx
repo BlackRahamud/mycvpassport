@@ -850,6 +850,113 @@ export default function PricingPage({ refreshProfile } = {}) {
           );
         })()}
 
+        {/* PAY WITH CONFIDENCE — answers purchase questions directly below the plans */}
+        <section
+          aria-labelledby="pricing-trust-title"
+          style={{
+            margin: `0 0 ${isMobile ? 36 : 48}px`,
+            padding: isMobile ? 20 : 28,
+            border: "1px solid var(--border)",
+            borderRadius: 24,
+            background: "linear-gradient(135deg, rgba(139,92,246,0.055), rgba(217,119,6,0.075) 68%, rgba(255,255,255,0.22))",
+            boxShadow: "0 12px 34px rgba(15,23,42,0.045)",
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: isMobile ? 22 : 28 }}>
+            <div style={{
+              width: 42, height: 42, margin: "0 auto 12px", borderRadius: 14,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "var(--accent-text)", background: "rgba(217,119,6,0.12)",
+              border: "1px solid rgba(217,119,6,0.20)",
+            }} aria-hidden="true">
+              <LockIcon />
+            </div>
+            <h2 id="pricing-trust-title" style={{
+              margin: "0 0 8px", fontSize: isMobile ? 22 : 28,
+              lineHeight: 1.2, letterSpacing: "-0.025em", fontWeight: 750,
+              color: "var(--text-primary)",
+            }}>Pay with confidence</h2>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)" }}>
+              Clear pricing, secure checkout, and help if you need it.
+            </p>
+          </div>
+
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))",
+            gap: 12,
+          }}>
+            {[
+              {
+                icon: "✓", tint: "rgba(16,185,129,0.12)", iconColor: "#059669",
+                title: "Access after confirmation",
+                body: "After payment is confirmed, CVPassport activates your plan. If activation is delayed, contact support and we’ll help.",
+              },
+              {
+                icon: "₹", tint: "rgba(59,130,246,0.12)", iconColor: "#2563EB",
+                title: "Know what you pay",
+                body: `${currency === "AED" ? "AED 19" : "₹149"} is a one-time unlock. ${currency === "AED" ? "AED 29" : "₹349"} gives 30 days, and ${currency === "AED" ? "AED 169" : "₹999"} gives one year of access.`,
+              },
+              {
+                icon: "▣", tint: "rgba(16,185,129,0.12)", iconColor: "#059669",
+                title: "Secure payment checkout",
+                body: `Your checkout is handled by ${geo.processor}. Payment details are entered in the payment provider’s checkout, not in this pricing page.`,
+              },
+              {
+                icon: "?", tint: "rgba(249,115,22,0.13)", iconColor: "#EA580C",
+                title: "Need a hand?",
+                body: "If payment succeeds but access does not appear, contact support@mycvpassport.com with your payment reference.",
+              },
+            ].map((item) => (
+              <div key={item.title} style={{
+                minWidth: 0, padding: isMobile ? 17 : 18, borderRadius: 17,
+                background: "var(--bg-surface)", border: "1px solid var(--border)",
+                boxShadow: "0 2px 8px rgba(15,23,42,0.025)",
+              }}>
+                <div aria-hidden="true" style={{
+                  width: 40, height: 40, borderRadius: 14, marginBottom: 14,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20, fontWeight: 750, color: item.iconColor, background: item.tint,
+                }}>{item.icon}</div>
+                <h3 style={{ margin: "0 0 8px", fontSize: 15, lineHeight: 1.35, fontWeight: 700, color: "var(--text-primary)" }}>{item.title}</h3>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "var(--text-secondary)", overflowWrap: "anywhere" }}>{item.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            display: "flex", flexDirection: isMobile ? "column" : "row",
+            alignItems: "center", justifyContent: "center", gap: isMobile ? 12 : 22,
+            marginTop: 22, padding: isMobile ? "14px 10px" : "16px 20px",
+            borderRadius: 15, background: "rgba(255,255,255,0.38)",
+            border: "1px solid var(--border)", textAlign: "center",
+          }}>
+            {[
+              "No hidden fees",
+              "One-time and fixed-duration plans",
+              `Checkout via ${geo.processor}`,
+            ].map((label) => (
+              <div key={label} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12, lineHeight: 1.4, color: "var(--text-secondary)" }}>
+                <CheckIcon size={13} color="var(--success)" />
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {currency === "AED" ? (
+            <div style={{ marginTop: 18 }}>
+              <PaymentTrustBar label="Payment methods available through Ziina" />
+            </div>
+          ) : (
+            <p style={{ margin: "18px 0 0", textAlign: "center", fontSize: 12, lineHeight: 1.5, color: "var(--text-secondary)" }}>
+              Available payment methods are shown in the Razorpay checkout.
+            </p>
+          )}
+          <p style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", maxWidth: 600, margin: "16px auto 0", lineHeight: 1.5 }}>
+            Plan access is provided according to the selected plan’s terms. Payment provider names and logos belong to their respective owners.
+          </p>
+        </section>
+
         {/* COMPARISON TABLE — the detail layer, always visible, scrolls on narrow */}
         <div style={{ marginBottom: isMobile ? 36 : 48 }}>
           <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: "var(--text-primary)", textAlign: "center", margin: "0 0 20px", letterSpacing: "-0.01em" }}>
@@ -907,31 +1014,6 @@ export default function PricingPage({ refreshProfile } = {}) {
           </div>
         </div>
 
-        {/* TRUST + PAYMENT STRIP */}
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: isMobile ? 28 : 36, marginBottom: 40 }}>
-          <div style={{
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: isMobile ? 12 : 40,
-            marginBottom: 24,
-          }}>
-            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              Secured by {geo.processor} <LockIcon />
-            </span>
-            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              One time payment <CheckIcon size={12} color="var(--success)" />
-            </span>
-            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              No hidden fees <CheckIcon size={12} color="var(--success)" />
-            </span>
-          </div>
-          <PaymentTrustBar style={{ marginTop: 8 }} />
-          <p style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", maxWidth: 540, margin: "18px auto 0", lineHeight: 1.5 }}>
-            Brand names referenced are property of their respective owners. No affiliation or endorsement implied.
-          </p>
-        </div>
 
       </div>
     </div>
