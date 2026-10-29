@@ -179,6 +179,10 @@ export default function MobileNav({
       {isOpen && (
         <>
           <style>{`
+            .cvp-nav-direct-jobs { display:flex; width:100%; align-items:center; gap:12px; padding:13px 12px; margin:0 0 10px; text-align:left; border:1px solid var(--nav-border-hairline); border-radius:14px; background:var(--nav-surface-elevated); color:var(--nav-text); font:inherit; cursor:pointer; }
+            .cvp-nav-direct-jobs[data-active="true"] { background:var(--nav-accent-subtle); }
+            .cvp-nav-direct-jobs > svg:last-child { margin-left:auto; flex-shrink:0; }
+            .cvp-nav-direct-jobs-badge { display:inline-flex; margin-left:5px; padding:2px 5px; border-radius:999px; background:#e9edf4; color:#34445d; font-size:9px; font-weight:800; vertical-align:middle; }
             .cvp-nav-scrim {
               position: fixed; inset: 0;
               background: var(--nav-scrim);
@@ -413,6 +417,23 @@ export default function MobileNav({
 
             <div className="cvp-nav-drawer-scroll">
               <p className="cvp-nav-banner">{FREEBIE_BANNER_COPY}</p>
+              <button
+                type="button"
+                className="cvp-nav-direct-jobs"
+                data-active={location.pathname === '/jobs' || location.pathname.startsWith('/jobs/') ? 'true' : undefined}
+                onClick={() => {
+                  if (isGatedJobPath('/jobs')) browseJobs.go('/jobs');
+                  else navigate('/jobs');
+                  onClose();
+                }}
+              >
+                <NavIcon name="briefcase" />
+                <span className="cvp-nav-item-text">
+                  <span className="cvp-nav-item-title">Jobs <span className="cvp-nav-direct-jobs-badge">NEW</span></span>
+                  <span className="cvp-nav-item-desc">Explore opportunities across India & the Gulf</span>
+                </span>
+                <ChevronRightIcon />
+              </button>
 
               {NAV_SECTIONS.map((section) => {
                 const sectionOpen = openSectionId === section.id;

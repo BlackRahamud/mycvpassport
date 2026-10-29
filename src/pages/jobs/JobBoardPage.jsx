@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
+import { BriefcaseBusiness, FileText, Globe2, ShieldCheck } from "lucide-react";
 import { supabase } from "../../appSupabaseClient";
 import UserMenu from "../../components/UserMenu/UserMenu";
 import TopLoadingBar from "../../components/ui/TopLoadingBar";
@@ -41,6 +42,7 @@ function Checkbox({ on, label, count, onClick }) {
 export default function JobBoardPage() {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -51,12 +53,15 @@ export default function JobBoardPage() {
   const [barActive, setBarActive] = useState(false);
 
   // Filters
-  const [markets, setMarkets] = useState([]);
+  const [markets, setMarkets] = useState(() => {
+    const market = searchParams.get("market");
+    return market && ["gulf", "india"].includes(market) ? [market] : [];
+  });
   const [fields, setFields] = useState([]);
   const [types, setTypes] = useState([]);
   const [exps, setExps] = useState([]);
   const [visaOnly, setVisaOnly] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [mFiltersOpen, setMFiltersOpen] = useState(false);
 
   // Row apply
@@ -365,15 +370,26 @@ export default function JobBoardPage() {
       </header>
 
       <div className="jb-scroll">
-        <div className="jb-head">
-          <span className="jb-trust">
-            <IcCheck s={13} w={2.4} />
-            <span>Verified employers · Real salaries in local currency · Visa sponsored Gulf roles</span>
-          </span>
-          <h1 className="jb-head__title">
-            {jobs === null ? "Roles hiring now" : `${total} ${total === 1 ? "role" : "roles"} hiring now`}
-          </h1>
-          <p className="jb-head__sub">Real salaries in local currency, per month, as posted. Verified employers carry a tick.</p>
+        <div className="jb-head jb-head--story">
+          <div className="jb-head__story-copy">
+            <span className="jb-trust">
+              <IcCheck s={13} w={2.4} />
+              <span>Explore opportunities across India, UAE & the Gulf</span>
+            </span>
+            <h1 className="jb-head__title">Your next opportunity is closer than you think.</h1>
+            <p className="jb-head__sub">Find real roles, understand the details before applying, and prepare a stronger CV for your next move.</p>
+            <form className="jb-hero-search" onSubmit={(e) => e.preventDefault()}>
+              <label className="jb-hero-search__keyword"><IcSearch s={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Job title, skill or company" aria-label="Job title, skill or company" /></label>
+              <label className="jb-hero-search__market"><Globe2 size={16} /><select aria-label="Filter by market" value={markets.length === 1 ? markets[0] : ""} onChange={(e) => setMarkets(e.target.value ? [e.target.value] : [])}><option value="">UAE / India / Gulf</option><option value="gulf">UAE & Gulf</option><option value="india">India</option></select></label>
+              <button type="submit" className="jb-hero-search__button"><IcSearch s={15} />Search jobs</button>
+            </form>
+            <div className="jb-head__story-points"><span><ShieldCheck size={15} />Employer details where available</span><span><Globe2 size={15} />Two markets, one place</span><span><FileText size={15} />CV tools to help you prepare</span></div>
+          </div>
+          <div className="jb-head__story-art" aria-label="Job opportunities across India and the Gulf">
+            <div className="jb-region-card jb-region-card--gulf"><span className="jb-region-card__icon">✦</span><b>UAE & Gulf</b><small>Explore new career paths</small><div className="jb-region-skyline jb-region-skyline--gulf"><i/><i/><i/><i/><i/></div></div>
+            <div className="jb-region-card jb-region-card--india"><span className="jb-region-card__icon">◈</span><b>India</b><small>Find your next chapter</small><div className="jb-region-skyline jb-region-skyline--india"><i/><i/><i/><i/></div></div>
+            <div className="jb-head__art-note"><BriefcaseBusiness size={17}/><span><b>Find a role that fits</b><small>Explore. Prepare. Apply.</small></span></div>
+          </div>
         </div>
 
         {/* Mobile filter bar (glass) */}

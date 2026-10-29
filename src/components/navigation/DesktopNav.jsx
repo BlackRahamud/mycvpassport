@@ -106,6 +106,15 @@ export default function DesktopNav({ user, isPro }) {
         @media (max-width: 768px) {
           .cvp-desktop-nav { display: none; }
         }
+        .cvp-desktop-nav-jobs {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 8px 13px; border: 1px solid transparent; border-radius: var(--nav-radius-pill);
+          background: transparent; color: var(--nav-text-muted); font: inherit; font-size: 14px; font-weight: 600;
+          cursor: pointer; white-space: nowrap; transition: background-color var(--nav-dur-quick) var(--nav-ease), color var(--nav-dur-quick) var(--nav-ease);
+        }
+        .cvp-desktop-nav-jobs:hover, .cvp-desktop-nav-jobs[data-active="true"] { background: var(--nav-surface-elevated); color: var(--nav-text); }
+        .cvp-desktop-nav-jobs:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: 2px; }
+        .cvp-desktop-nav-jobs-badge { border-radius: 999px; padding: 2px 5px; background: #e9edf4; color: #34445d; font-size: 9px; letter-spacing: .03em; font-weight: 800; }
         .cvp-desktop-nav-group { position: relative; }
         .cvp-desktop-nav-trigger {
           position: relative;
@@ -227,6 +236,19 @@ export default function DesktopNav({ user, isPro }) {
         .cvp-desktop-nav-seeall:hover { background: var(--nav-accent-subtle); }
         .cvp-desktop-nav-seeall:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: -2px; }
       `}</style>
+
+      <button
+        type="button"
+        className="cvp-desktop-nav-jobs"
+        data-active={location.pathname === '/jobs' || location.pathname.startsWith('/jobs/') ? 'true' : undefined}
+        onClick={() => {
+          if (isGatedJobPath('/jobs')) browseJobs.go('/jobs');
+          else navigate('/jobs');
+          setOpenPanelId(null);
+        }}
+      >
+        Jobs <span className="cvp-desktop-nav-jobs-badge">NEW</span>
+      </button>
 
       {NAV_SECTIONS.map((section, idx) => {
         const isOpen = openPanelId === section.id;

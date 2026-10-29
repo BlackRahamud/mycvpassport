@@ -420,6 +420,12 @@ export default function JobPage() {
                   </div>
                 )}
               </div>
+              <div className="jp-cv-prompt">
+                <div className="jp-cv-prompt__icon"><IcFile /></div>
+                <h3>Make your CV ready for this role</h3>
+                <p>Prepare an ATS-friendly CV for your next application across India and the Gulf.</p>
+                <button type="button" onClick={() => navigate("/builder")}>Build my CV free <span aria-hidden="true">→</span></button>
+              </div>
             </aside>
           </div>
         </div>

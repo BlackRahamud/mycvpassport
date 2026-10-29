@@ -37,10 +37,8 @@ export const NAV_SECTIONS = [
     items: [
       // Pro-gated: nav renderer redirects logged-out + non-pro users to /pricing.
       { label: 'Job Scout',   href: '/scout',   icon: 'sparkles',  desc: 'AI finds jobs matching your CV', badge: 'PRO', requiresPro: true },
-      // Board is not live yet — the nav renderer opens the Boarding Soon
-      // gate for this href (src/config/jobsBoard.js), so the subtitle must
-      // not promise openings.
-      { label: 'Browse Jobs', href: '/jobs',    icon: 'briefcase', desc: 'India & Gulf · soon',            badge: 'NEW', requiresAuth: false },
+      // The live public job board is available to signed-out and signed-in visitors.
+      { label: 'Browse Jobs', href: '/jobs',    icon: 'briefcase', desc: 'Explore real jobs across India & the Gulf', badge: 'NEW', requiresAuth: false },
       { label: 'Blog',        href: '/blog',    icon: 'book',      desc: 'Career advice & resume tips',                  requiresAuth: false },
       { label: 'Pricing',     href: '/pricing', icon: 'tag',       desc: "Plans & what's included",                      requiresAuth: false },
     ],

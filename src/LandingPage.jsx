@@ -17,6 +17,7 @@ import { getTheme, setTheme as setGlobalTheme } from './lib/theme';
 // Free Tools, Build CV and Explore sections are reachable from the
 // landing header.
 import HeroSection from './components/landing/HeroSection';
+import JobDiscoverySection from './components/landing/JobDiscoverySection';
 import ProductWalkthroughSection from './components/landing/ProductWalkthroughSection';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
@@ -924,6 +925,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         {/* 2 — Hero with animated phone + iPad billboard */}
         <HeroSection user={user} />
 
+        {/* Job discovery — a second entry point for job seekers in India and the Gulf. */}
+        <JobDiscoverySection />
+
         {/* 3 — Product walkthrough film. Anchor target for the "Live demo"
                 nav link (kept: the link and any existing deep links still
                 land on the demo moment). Replaced the coded LiveAIDemo
@@ -1006,7 +1010,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             <div className="lp-site-footer-row1">
               <div>
                 <p className="lp-site-footer-brand-title">CVPassport</p>
-                <p className="lp-site-footer-brand-tag">Built for job seekers in the Gulf.</p>
+                <p className="lp-site-footer-brand-tag">Built for job seekers across India and the Gulf.</p>
               </div>
               <nav className="lp-site-footer-cols" aria-label="Footer">
                 <div>
