@@ -35,8 +35,11 @@ export async function fetchRecruiterStatus(userId) {
  */
 export async function completeEmployerOnboarding(userId, { companyName, companySize, workEmail }) {
   if (!supabase || !userId) throw new Error("Not signed in");
-  const name = (companyName || "").trim();
-  if (!name) throw new Error("Company name is required");
+  // The database currently requires a company name in both companies and
+  // hr_profiles. Use a neutral internal label when the employer skips it;
+  // the UI keeps this fallback hidden so they can add a real name later.
+  const suppliedName = (companyName || "").trim();
+  const name = suppliedName || "Independent Recruiter";
 
   const { userType, hrProfile } = await fetchRecruiterStatus(userId);
 
@@ -56,6 +59,16 @@ export async function completeEmployerOnboarding(userId, { companyName, companyS
         { onConflict: "company_id,user_id", ignoreDuplicates: true },
       );
     if (mErr) throw mErr;
+  } else {
+    // Keep the company record in sync if the recruiter adds or changes
+    // their company name later. A blank field returns it to the neutral label.
+    const companyUpdate = { name };
+    if (companySize) companyUpdate.size = companySize;
+    const { error: cUpdateErr } = await supabase
+      .from("companies")
+      .update(companyUpdate)
+      .eq("id", companyId);
+    if (cUpdateErr) throw cUpdateErr;
   }
 
   const { error: hErr } = await supabase
@@ -70,7 +83,7 @@ export async function completeEmployerOnboarding(userId, { companyName, companyS
   const grantedType = nextType === "candidate" ? "recruiter" : nextType;
   const { error: pErr } = await supabase
     .from("profiles")
-    .update({ user_type: grantedType, company_name: name, work_email: (workEmail || "").trim() || null })
+    .update({ user_type: grantedType, company_name: suppliedName || null, work_email: (workEmail || "").trim() || null })
     .eq("id", userId);
   if (pErr) throw pErr;
 
