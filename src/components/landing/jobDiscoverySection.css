@@ -82,3 +82,150 @@
 @media (max-width: 560px) {
   .cvp-jobs-discovery__market { padding-right: 34px; }
 }
+
+/* ── Interactive market dropdown shared by homepage and job board ── */
+.cvp-market-select {
+  position: relative;
+  min-width: 0;
+  z-index: 8;
+}
+.cvp-market-select:has(.cvp-market-select__menu) {
+  z-index: 30;
+}
+.cvp-market-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+  padding: 0 12px;
+  border: 0 !important;
+  border-radius: 11px;
+  outline: none !important;
+  box-shadow: none !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(246,248,251,.94)) !important;
+  color: #344a65;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: background .18s ease, box-shadow .18s ease;
+}
+.cvp-market-select__trigger > svg:first-child {
+  flex: 0 0 auto;
+  color: #7189a5;
+}
+.cvp-market-select__trigger > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cvp-market-select__trigger > svg:last-child {
+  flex: 0 0 auto;
+  color: #718198;
+  transition: transform .18s ease;
+}
+.cvp-market-select__trigger > svg:last-child.is-open {
+  transform: rotate(180deg);
+}
+.cvp-market-select__trigger:hover {
+  background: #fff !important;
+  box-shadow: 0 5px 16px rgba(36,54,78,.07) !important;
+}
+.cvp-market-select__trigger:focus,
+.cvp-market-select__trigger:focus-visible {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 3px rgba(91,120,152,.18) !important;
+}
+.cvp-market-select__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  width: max(100%, 210px);
+  padding: 6px;
+  border: 1px solid rgba(210,220,231,.9);
+  border-radius: 14px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 18px 42px rgba(29,43,61,.16), 0 3px 9px rgba(29,43,61,.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: cvp-market-menu-in .16s ease-out;
+}
+.cvp-market-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 39px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  outline: none;
+  background: transparent;
+  color: #354961;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.cvp-market-select__option:hover,
+.cvp-market-select__option:focus-visible {
+  outline: none;
+  background: #f0f4f8;
+  color: #20364f;
+}
+.cvp-market-select__option.is-selected {
+  background: #edf2f7;
+  color: #263d58;
+  font-weight: 700;
+}
+.cvp-market-select__option svg {
+  color: #5b7898;
+}
+@keyframes cvp-market-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Neutralise the old global amber input focus treatment in these search bars. */
+html body .cvp-jobs-discovery__keyword input:focus,
+html body .cvp-jobs-discovery__keyword input:focus-visible,
+html body .jb-root .jb-hero-search__keyword input:focus,
+html body .jb-root .jb-hero-search__keyword input:focus-visible {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.cvp-jobs-discovery__keyword:focus-within,
+.jb-root .jb-hero-search__keyword:focus-within {
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(91,120,152,.17) !important;
+}
+.cvp-jobs-discovery__keyword input,
+.jb-root .jb-hero-search__keyword input {
+  outline: none !important;
+  border: 0 !important;
+}
+.cvp-jobs-discovery__keyword input::placeholder,
+.jb-root .jb-hero-search__keyword input::placeholder {
+  color: #8794a5;
+  opacity: 1;
+}
+@media (max-width: 900px) {
+  .cvp-market-select__trigger { height: 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvp-market-select__menu { animation: none; }
+  .cvp-market-select__trigger,
+  .cvp-market-select__trigger > svg:last-child,
+  .cvp-market-select__option { transition: none; }
+}
