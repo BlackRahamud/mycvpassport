@@ -51,7 +51,10 @@ export default function EmployerOnboardingPage() {
           return;
         }
         // Prefill anything the signup form already captured.
-        setCompanyName(hrProfile?.company_name || profile?.company_name || "");
+        const savedCompanyName = hrProfile?.company_name || profile?.company_name || "";
+        // "Independent Recruiter" is the internal fallback for accounts
+        // that skipped company details; keep the optional field visually blank.
+        setCompanyName(savedCompanyName === "Independent Recruiter" ? "" : savedCompanyName);
         setWorkEmail(hrProfile?.work_email || profile?.work_email || "");
       } catch {
         /* fall through to the empty form — submit re-validates */
@@ -64,10 +67,6 @@ export default function EmployerOnboardingPage() {
   const submit = async (e) => {
     e.preventDefault();
     if (saving) return;
-    if (!companyName.trim()) {
-      setError("Enter your company name to continue.");
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
@@ -101,19 +100,20 @@ export default function EmployerOnboardingPage() {
               transition: { duration: 0.45, ease: EASE },
             })}
           >
-            <h1>Set up your company</h1>
+            <h1>Set up your employer account</h1>
             <p className="emp-onb-sub">
               This unlocks the employer portal on your existing account — your
-              CVs and applications stay exactly where they are.
+              CVs and applications stay exactly where they are. You can add your
+              company details now or complete them later.
             </p>
 
             <label className="emp-field">
-              <span>Company name</span>
+              <span>Company name <em>(optional)</em></span>
               <input
                 type="text"
                 value={companyName}
                 onChange={(e) => { setCompanyName(e.target.value); setError(null); }}
-                placeholder="Your company"
+                placeholder="Add your company name (optional)"
                 autoFocus
               />
             </label>
@@ -136,10 +136,15 @@ export default function EmployerOnboardingPage() {
               />
             </label>
 
+            <p className="emp-onb-sub" style={{ marginTop: -4, marginBottom: 16, fontSize: 12 }}>
+              No company name? No problem. We'll set up your account as an independent
+              recruiter, and you can add your company details later.
+            </p>
+
             {error ? <p className="emp-onb-error" role="alert">{error}</p> : null}
 
             <button type="submit" className="emp-btn emp-btn--primary emp-onb-submit" disabled={saving}>
-              {saving ? "Setting up…" : "Start hiring →"}
+              {saving ? "Setting up…" : "Continue to employer portal →"}
             </button>
           </motion.form>
         )}
