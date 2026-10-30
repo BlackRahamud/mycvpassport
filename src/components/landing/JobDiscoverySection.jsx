@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, BriefcaseBusiness, CalendarDays, CheckCircle2, Globe2, MapPin, Search, ShieldCheck, FileText } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, CheckCircle2, ChevronDown, Globe2, MapPin, Search, ShieldCheck, FileText } from "lucide-react";
 import { supabase } from "../../appSupabaseClient";
 import { salaryText, postedText, jobTypeLabel } from "../../lib/jobs/jobFormat";
 import { logEvent } from "../../lib/analytics/logEvent";
@@ -8,6 +8,71 @@ import "./jobDiscoverySection.css";
 
 function marketLabel(job) {
   return job.market === "india" ? "India" : "UAE & Gulf";
+}
+
+
+function MarketDropdown({ value, onChange, className, ariaLabel }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const options = [
+    { value: "", label: "UAE / India / Gulf" },
+    { value: "gulf", label: "UAE & Gulf" },
+    { value: "india", label: "India" },
+  ];
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className={`cvp-market-select ${className || ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="cvp-market-select__trigger"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <Globe2 size={17} aria-hidden="true" />
+        <span>{selected.label}</span>
+        <ChevronDown className={open ? "is-open" : ""} size={17} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="cvp-market-select__menu" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => (
+            <button
+              key={option.value || "all"}
+              type="button"
+              role="option"
+              aria-selected={value === option.value}
+              className={`cvp-market-select__option${value === option.value ? " is-selected" : ""}`}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {value === option.value && <Check size={16} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function JobDiscoverySection() {
@@ -76,7 +141,7 @@ export default function JobDiscoverySection() {
           </div>
           <form className="cvp-jobs-discovery__search" onSubmit={searchJobs}>
             <label className="cvp-jobs-discovery__keyword"><Search size={18} /><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Job title, skill or company" aria-label="Job title, skill or company" /></label>
-            <label className="cvp-jobs-discovery__market"><Globe2 size={17} /><select value={market} onChange={(e) => setMarket(e.target.value)} aria-label="Choose job market"><option value="">UAE / India / Gulf</option><option value="gulf">UAE & Gulf</option><option value="india">India</option></select></label>
+            <MarketDropdown className="cvp-jobs-discovery__market" value={market} onChange={setMarket} ariaLabel="Choose job market" />
             <button type="submit" className="cvp-jobs-discovery__search-btn">Search jobs <ArrowRight size={16} /></button>
           </form>
           <div className="cvp-jobs-discovery__quicklinks">
