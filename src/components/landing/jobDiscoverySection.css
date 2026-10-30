@@ -16,3 +16,69 @@
 .cvp-jobs-discovery__region-icon,.cvp-jobs-discovery__region-title,.cvp-jobs-discovery__region-sub{position:relative;z-index:1;text-shadow:0 1px 10px rgba(255,255,255,.5)}
 .cvp-jobs-discovery__skyline{display:none}
 @media(max-width:560px){.cvp-jobs-discovery__region{min-height:138px}.cvp-jobs-discovery__region-sub{max-width:150px}}
+
+
+/* ── Premium market selector: homepage ─────────────────────────── */
+.cvp-jobs-discovery__market {
+  position: relative;
+  min-height: 43px;
+  padding-right: 34px;
+  border-left: 1px solid #e7ebef;
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(246,248,251,.94));
+  transition: background .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.cvp-jobs-discovery__market::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 1.8px solid #718198;
+  border-bottom: 1.8px solid #718198;
+  transform: translateY(-68%) rotate(45deg);
+  pointer-events: none;
+}
+.cvp-jobs-discovery__market:hover {
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(36,54,78,.06);
+}
+.cvp-jobs-discovery__market:focus-within {
+  border-color: #9aacc1;
+  box-shadow: 0 0 0 3px rgba(91,120,152,.13);
+}
+.cvp-jobs-discovery__market select {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  z-index: 1;
+  height: 43px;
+  padding: 0 4px;
+  border: 0 !important;
+  border-radius: 9px;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: #31445d;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cvp-jobs-discovery__market select:focus,
+.cvp-jobs-discovery__market select:focus-visible {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.cvp-jobs-discovery__market select option {
+  background: #fff;
+  color: #26364b;
+  font-weight: 500;
+}
+@media (max-width: 900px) {
+  .cvp-jobs-discovery__market { border-left: 0; }
+}
+@media (max-width: 560px) {
+  .cvp-jobs-discovery__market { padding-right: 34px; }
+}
