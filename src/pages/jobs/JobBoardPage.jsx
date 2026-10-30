@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
-import { BriefcaseBusiness, FileText, Globe2, ShieldCheck } from "lucide-react";
+import { BriefcaseBusiness, Check, ChevronDown, FileText, Globe2, ShieldCheck } from "lucide-react";
 import { supabase } from "../../appSupabaseClient";
 import UserMenu from "../../components/UserMenu/UserMenu";
 import TopLoadingBar from "../../components/ui/TopLoadingBar";
@@ -36,6 +36,71 @@ function Checkbox({ on, label, count, onClick }) {
       <span className="jb-check__label">{label}</span>
       {count != null && <span className="jb-check__count">{count}</span>}
     </button>
+  );
+}
+
+
+function MarketDropdown({ value, onChange, className, ariaLabel }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const options = [
+    { value: "", label: "UAE / India / Gulf" },
+    { value: "gulf", label: "UAE & Gulf" },
+    { value: "india", label: "India" },
+  ];
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className={`cvp-market-select ${className || ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="cvp-market-select__trigger"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <Globe2 size={17} aria-hidden="true" />
+        <span>{selected.label}</span>
+        <ChevronDown className={open ? "is-open" : ""} size={17} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="cvp-market-select__menu" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => (
+            <button
+              key={option.value || "all"}
+              type="button"
+              role="option"
+              aria-selected={value === option.value}
+              className={`cvp-market-select__option${value === option.value ? " is-selected" : ""}`}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {value === option.value && <Check size={16} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -380,7 +445,7 @@ export default function JobBoardPage() {
             <p className="jb-head__sub">Find real roles, understand the details before applying, and prepare a stronger CV for your next move.</p>
             <form className="jb-hero-search" onSubmit={(e) => e.preventDefault()}>
               <label className="jb-hero-search__keyword"><IcSearch s={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Job title, skill or company" aria-label="Job title, skill or company" /></label>
-              <label className="jb-hero-search__market"><Globe2 size={16} /><select aria-label="Filter by market" value={markets.length === 1 ? markets[0] : ""} onChange={(e) => setMarkets(e.target.value ? [e.target.value] : [])}><option value="">UAE / India / Gulf</option><option value="gulf">UAE & Gulf</option><option value="india">India</option></select></label>
+              <MarketDropdown className="jb-hero-search__market" value={markets.length === 1 ? markets[0] : ""} onChange={(value) => setMarkets(value ? [value] : [])} ariaLabel="Filter by market" />
               <button type="submit" className="jb-hero-search__button"><IcSearch s={15} />Search jobs</button>
             </form>
             <div className="jb-head__story-points"><span><ShieldCheck size={15} />Employer details where available</span><span><Globe2 size={15} />Two markets, one place</span><span><FileText size={15} />CV tools to help you prepare</span></div>
