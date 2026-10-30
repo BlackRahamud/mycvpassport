@@ -751,47 +751,76 @@ export default function AdminPanelV3({ preview }) {
       {grant && (
         <>
           <div className="adv3-modal-scrim" onClick={() => setGrant(null)} />
-          <div className="adv3-modal">
-            <div style={{ padding: "22px 24px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ flex: 1 }}><h2 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-0.02em" }}>Grant access</h2><p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--muted2)" }}>Give a plan directly, whether or not they are a user</p></div>
-              <button type="button" onClick={() => setGrant(null)} style={{ width: 34, height: 34, borderRadius: 11, border: "1px solid var(--border2)", background: "var(--card)", color: "var(--muted)", cursor: "pointer", display: "grid", placeItems: "center" }}><Ico n="close" size={16} color="currentColor" /></button>
-            </div>
-            <div style={{ padding: "20px 24px 6px" }}>
-              <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 700, color: "var(--soft)" }}>Email</p>
-              <input value={grant.email} onChange={(e) => setGrant((g) => ({ ...g, email: e.target.value }))} placeholder="name@company.com" style={{ width: "100%", padding: "13px 15px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border2)", color: "var(--text)", fontFamily: "inherit", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-              {grant.email && !users.some((u) => (u.email || "").toLowerCase() === grant.email.trim().toLowerCase()) && (
-                <p style={{ margin: "9px 0 0", fontSize: 12, color: VIOLET }}>New person — a pending grant is saved and resolves on signup.</p>
-              )}
-              <p style={{ margin: "20px 0 9px", fontSize: 12, fontWeight: 700, color: "var(--soft)" }}>1 · Portal</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {["candidate", "hr"].map((p) => { const on = grant.portal === p; return (
-                  <button key={p} type="button" onClick={() => setGrant((g) => ({ ...g, portal: p, plan: p === "hr" ? "Foundation" : "Active Hunter" }))} style={{ padding: 13, borderRadius: 12, border: `1.5px solid ${on ? (p === "hr" ? VIOLET : ACCENT) : "var(--border2)"}`, background: on ? (p === "hr" ? "#F1ECFC" : "#EDF1FF") : "var(--card)", color: on ? (p === "hr" ? VIOLET : ACCENT) : "var(--soft)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>{p === "hr" ? "HR employer" : "Candidate"}</button>
-                ); })}
+          <div className="adv3-modal" role="dialog" aria-modal="true" aria-labelledby="grant-access-title" onClick={(e) => e.stopPropagation()}>
+            <div className="adv3-modal-header">
+              <div style={{ flex: 1 }}>
+                <h2 id="grant-access-title">Grant access</h2>
+                <p>Give a plan directly, whether or not they are a user</p>
               </div>
-              <p style={{ margin: "20px 0 9px", fontSize: 12, fontWeight: 700, color: "var(--soft)" }}>2 · Plan</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {(grant.portal === "hr" ? [{ label: "Foundation", price: "AED 99 / INR 999" }] : [{ label: "Express Pass", price: "AED 19" }, { label: "Active Hunter", price: "AED 29" }, { label: "Career Pro", price: "AED 169" }]).map((pl) => { const on = grant.plan === pl.label; return (
-                  <button key={pl.label} type="button" onClick={() => setGrant((g) => ({ ...g, plan: pl.label }))} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 15px", borderRadius: 12, border: `1.5px solid ${on ? ACCENT : "var(--border2)"}`, background: on ? "#EDF1FF" : "var(--card)", color: on ? ACCENT : "var(--text)", fontFamily: "inherit", cursor: "pointer" }}><span style={{ fontSize: 13.5, fontWeight: 700 }}>{pl.label}</span><span style={{ fontSize: 12, color: on ? ACCENT : "var(--muted2)" }}>{pl.price}</span></button>
-                ); })}
-              </div>
-              <p style={{ margin: "20px 0 9px", fontSize: 12, fontWeight: 700, color: "var(--soft)" }}>3 · Duration</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                {[{ k: "full", l: "Full access" }, { k: "30", l: "30 days" }, { k: "custom", l: "Custom date" }].map((d) => { const on = grant.duration === d.k; return (
-                  <button key={d.k} type="button" onClick={() => setGrant((g) => ({ ...g, duration: d.k }))} style={{ padding: 11, borderRadius: 11, border: 0, background: on ? ACCENT : "var(--bg)", color: on ? "#fff" : "var(--soft)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{d.l}</button>
-                ); })}
-              </div>
-              {grant.duration === "custom" && <input type="date" value={grant.custom || ""} onChange={(e) => setGrant((g) => ({ ...g, custom: e.target.value }))} style={{ width: "100%", marginTop: 10, padding: "12px 14px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border2)", color: "var(--text)", fontFamily: "inherit", fontSize: 13.5, outline: "none", boxSizing: "border-box" }} />}
-            </div>
-            <div style={{ padding: "16px 24px 22px" }}>
-              <button type="button" onClick={submitGrant} disabled={grant.busy} style={{ width: "100%", height: 50, borderRadius: 14, border: 0, background: grant.done ? "#2FB37C" : ACCENT, color: "#fff", fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, opacity: grant.busy ? 0.7 : 1 }}>
-                {grant.done ? <><Ico n="check" size={18} color="#fff" /> Access granted</> : `Grant ${grant.plan} on ${grant.portal === "hr" ? "HR employer" : "Candidate"}`}
+              <button type="button" className="adv3-modal-close" onClick={() => setGrant(null)} aria-label="Close grant access">
+                <Ico n="close" size={16} color="currentColor" />
               </button>
-              <p style={{ margin: "14px 0 0", fontSize: 12, color: "var(--faint)", lineHeight: 1.55 }}>A new email is stored as a pending grant that resolves on signup. An existing user is provisioned now. Both are audited.</p>
+            </div>
+            <div className="adv3-modal-body">
+              <p className="adv3-field-label">Email</p>
+              <input
+                value={grant.email}
+                onChange={(e) => setGrant((g) => ({ ...g, email: e.target.value }))}
+                placeholder="name@company.com"
+                type="email"
+                className="adv3-modal-input"
+              />
+              {grant.email && !users.some((u) => (u.email || "").toLowerCase() === grant.email.trim().toLowerCase()) && (
+                <p className="adv3-pending-note">New person — a pending grant is saved and resolves on signup.</p>
+              )}
+              <p className="adv3-field-label adv3-section-label"><span>1</span> Portal</p>
+              <div className="adv3-portal-options">
+                {["candidate", "hr"].map((p) => {
+                  const on = grant.portal === p;
+                  return (
+                    <button key={p} type="button" onClick={() => setGrant((g) => ({ ...g, portal: p, plan: p === "hr" ? "Foundation" : "Active Hunter" }))} className={`adv3-portal-option ${on ? "selected" : ""} ${p === "hr" ? "hr-option" : ""}`}>
+                      <Ico n={p === "hr" ? "building" : "user"} size={18} color="currentColor" />
+                      <span>{p === "hr" ? "HR employer" : "Candidate"}</span>
+                      {on && <Ico n="check" size={15} color="currentColor" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="adv3-field-label adv3-section-label"><span>2</span> Plan</p>
+              <div className="adv3-plan-options">
+                {(grant.portal === "hr" ? [{ label: "Foundation", price: "AED 99 / INR 999" }] : [{ label: "Express Pass", price: "AED 19" }, { label: "Active Hunter", price: "AED 29" }, { label: "Career Pro", price: "AED 169" }]).map((pl) => {
+                  const on = grant.plan === pl.label;
+                  return (
+                    <button key={pl.label} type="button" onClick={() => setGrant((g) => ({ ...g, plan: pl.label }))} className={`adv3-plan-option ${on ? "selected" : ""}`}>
+                      <span><strong>{pl.label}</strong><small>{pl.label === "Foundation" ? "Employer access" : "Candidate access"}</small></span>
+                      <span className="adv3-plan-price">{pl.price}</span>
+                      {on && <Ico n="check" size={17} color="currentColor" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="adv3-field-label adv3-section-label"><span>3</span> Duration</p>
+              <div className="adv3-duration-options">
+                {[{ k: "full", l: "Full access" }, { k: "30", l: "30 days" }, { k: "custom", l: "Custom date" }].map((d) => {
+                  const on = grant.duration === d.k;
+                  return (
+                    <button key={d.k} type="button" onClick={() => setGrant((g) => ({ ...g, duration: d.k }))} className={on ? "selected" : ""}>{d.l}</button>
+                  );
+                })}
+              </div>
+              {grant.duration === "custom" && (
+                <input type="date" value={grant.custom || ""} onChange={(e) => setGrant((g) => ({ ...g, custom: e.target.value }))} className="adv3-modal-input adv3-date-input" />
+              )}
+            </div>
+            <div className="adv3-modal-footer">
+              <button type="button" onClick={submitGrant} disabled={grant.busy} className={`adv3-grant-submit ${grant.done ? "success" : ""}`}>
+                {grant.done ? <><Ico n="check" size={18} color="#fff" /> Access granted</> : grant.busy ? "Granting access..." : <>Grant {grant.plan} on {grant.portal === "hr" ? "HR employer" : "Candidate"} <Ico n="arrow-right" size={17} color="#fff" /></>}
+              </button>
+              <p>A new email is stored as a pending grant and resolves on signup. An existing user is provisioned now. Both are audited.</p>
             </div>
           </div>
         </>
       )}
-
       {toast && <div className="adv3-toast" style={{ background: toast.ok ? "#111827" : "#B84343", color: "#fff" }}>{toast.text}</div>}
     </div>
   );
