@@ -47,6 +47,10 @@ const ReviewModePage       = lazy(() => import(/* webpackChunkName: "hr-review" 
 const InterviewCompanionPage = lazy(() => import(/* webpackChunkName: "hr-interview" */ "./pages/hr/Interview/InterviewCompanionPage"));
 const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
 const InterviewsPage       = lazy(() => import(/* webpackChunkName: "hr-interviews" */ "./pages/hr/Interviews/InterviewsPage"));
+const InterviewerSetupPage = lazy(() => import(/* webpackChunkName: "candidate-interviewer" */ "./pages/interviewer/InterviewerSetupPage"));
+const InterviewerRoomPage = lazy(() => import(/* webpackChunkName: "candidate-interviewer" */ "./pages/interviewer/InterviewerRoomPage"));
+const InterviewerReportPage = lazy(() => import(/* webpackChunkName: "candidate-interviewer" */ "./pages/interviewer/InterviewerReportPage"));
+const InterviewerHistoryPage = lazy(() => import(/* webpackChunkName: "candidate-interviewer" */ "./pages/interviewer/InterviewerHistoryPage"));
 const HrImportPage         = lazy(() => import(/* webpackChunkName: "hr-import" */     "./pages/hr/Import/ImportPage"));
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
@@ -434,6 +438,11 @@ export default function App() {
               />
               {/* Same authReady gate as /dashboard — these are reached from
                   the account popover, so a refresh here had the same bounce. */}
+              <Route path="/interviewer" element={<Navigate to="/interviewer/setup" replace />} />
+              <Route path="/interviewer/setup" element={!authReady ? null : user ? <InterviewerSetupPage user={user} /> : <NavigateToAuth />} />
+              <Route path="/interviewer/history" element={!authReady ? null : user ? <InterviewerHistoryPage user={user} /> : <NavigateToAuth />} />
+              <Route path="/interviewer/session/:sessionId" element={!authReady ? null : user ? <InterviewerRoomPage user={user} /> : <NavigateToAuth />} />
+              <Route path="/interviewer/report/:sessionId" element={!authReady ? null : user ? <InterviewerReportPage user={user} /> : <NavigateToAuth />} />
               <Route path="/account" element={!authReady ? null : user ? <AccountPage /> : <Navigate to="/" replace />} />
               <Route path="/account/invoices" element={!authReady ? null : user ? <InvoicesList /> : <Navigate to="/" replace />} />
               <Route path="/account/invoices/:id" element={!authReady ? null : user ? <InvoiceDetail /> : <Navigate to="/" replace />} />

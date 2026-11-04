@@ -1,5 +1,5 @@
 /**
- * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit|candidate_match
+ * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit|candidate_match|practice_interview
  *
  * Single Anthropic-helper router. Was three separate functions
  * (api/cover-letter.js, api/parse-resume.js, api/generate-linkedin-headline.js)
@@ -56,6 +56,7 @@
 import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { hasProAccess } from '../src/config/access.js';
+import { boundedPracticeText, validatePracticeEvaluation, validatePracticeQuestionSet } from '../src/lib/practiceInterviewValidators.js';
 
 export const config = { maxDuration: 60 };
 
@@ -2498,6 +2499,218 @@ async function handleInterviewKit(req, res, body) {
 }
 
 // =====================================================================
+// Candidate practice interviews — separate from recruiter-owned interviews.
+// Session and turn rows are created/read by the signed-in candidate under
+// RLS. This server branch verifies ownership before using service role to
+// evaluate answers or write generated content.
+// =====================================================================
+
+const PRACTICE_MODEL = process.env.PRACTICE_INTERVIEW_MODEL || 'claude-haiku-4-5-20251001';
+
+async function practiceClaude(system, prompt, maxTokens = 1800) {
+  const upstream = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: PRACTICE_MODEL,
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      system: `${system} Return strict JSON only. Do not use markdown fences.`,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  }, 2, 1500, 45000);
+  const bodyText = await upstream.text();
+  if (!upstream.ok) throw new Error(`anthropic_${upstream.status}`);
+  let payload;
+  try { payload = JSON.parse(bodyText); } catch { throw new Error('anthropic_bad_json'); }
+  const raw = payload?.content?.find((part) => part.type === 'text')?.text || '';
+  const parsed = extractLooseJson(raw);
+  if (!parsed || typeof parsed !== 'object') throw new Error('invalid_ai_json');
+  return parsed;
+}
+
+const boundedText = boundedPracticeText;
+
+async function handleCandidatePractice(req, res, body) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Use POST for this action.' });
+  if (!ANTHROPIC_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ ok: false, error: 'Interview service is not configured.' });
+  }
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!token) return res.status(401).json({ ok: false, error: 'Please sign in to continue.' });
+  let user;
+  try {
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data?.user) return res.status(401).json({ ok: false, error: 'Your session expired. Please sign in again.' });
+    user = data.user;
+  } catch {
+    return res.status(401).json({ ok: false, error: 'Could not verify your session.' });
+  }
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const sessionId = boundedText(body.sessionId, 64);
+  if (!sessionId) return res.status(400).json({ ok: false, error: 'Interview session is missing.' });
+  const { data: session, error: sessionError } = await admin
+    .from('practice_sessions')
+    .select('id, candidate_id, role_title, job_description, cv_text, mode, difficulty, category, status, report')
+    .eq('id', sessionId)
+    .eq('candidate_id', user.id)
+    .maybeSingle();
+  if (sessionError || !session) return res.status(404).json({ ok: false, error: 'This interview could not be found.' });
+
+  let lockedTurnId = null;
+  try {
+    if (body.task === 'generate') {
+      const { data: existing } = await admin.from('practice_turns').select('id').eq('session_id', session.id).limit(1);
+      if (existing?.length) {
+        const { data: turns } = await admin.from('practice_turns').select('*').eq('session_id', session.id).order('position');
+        if (session.status === 'setup') {
+          const { error: statusError } = await admin.from('practice_sessions').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
+          if (statusError) throw new Error('session_start_failed');
+        }
+        return res.status(200).json({ ok: true, turns: turns || [] });
+      }
+      if (session.status !== 'setup') return res.status(409).json({ ok: false, error: 'This interview is no longer in setup.' });
+      const generated = await practiceClaude(
+        'You create fair, role-specific practice interview questions. Ground questions in the supplied CV and job context. Never invent candidate facts. Questions must be answerable and clear. Include four answer choices only for objective knowledge checks; use an empty choices array for open questions. Do not ask for protected personal information.',
+        `Create exactly 8 questions for a candidate interview.\nRole: ${boundedText(session.role_title, 160)}\nCategory: ${boundedText(session.category, 60)}\nDifficulty: ${boundedText(session.difficulty, 30)}\nJob description: ${boundedText(session.job_description, 7000) || '(not provided)'}\nCV: ${boundedText(session.cv_text, 12000)}\nReturn {"questions":[{"category":"technical|experience|behavioral|situational|motivation","question":"...","choices":[]}]} . Use choices only for objective technical questions; exactly four when used.`,
+        1700,
+      );
+      const questions = validatePracticeQuestionSet(generated);
+      if (!questions) return res.status(502).json({ ok: false, error: 'The interview questions could not be validated. Please try again.' });
+      const rows = questions.map((q, i) => ({
+        session_id: session.id, candidate_id: user.id, position: i + 1,
+        question_id: q.question_id, root_question_id: q.question_id,
+        category: q.category, question: q.question, choices: q.choices,
+        is_follow_up: false, follow_up_count: 0,
+      }));
+      const { data: turns, error } = await admin.from('practice_turns').insert(rows).select('*');
+      if (error) throw new Error('turn_insert_failed');
+      const { error: statusError } = await admin.from('practice_sessions').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
+      if (statusError) throw new Error('session_start_failed');
+      return res.status(200).json({ ok: true, turns: turns || [] });
+    }
+
+    if (body.task === 'evaluate') {
+      const turnId = boundedText(body.turnId, 64);
+      const answer = boundedText(body.answer, 12000);
+      if (!turnId || !answer) return res.status(400).json({ ok: false, error: 'Write or speak an answer before submitting.' });
+      const { data: turn, error: turnError } = await admin.from('practice_turns').select('*').eq('id', turnId).eq('session_id', session.id).eq('candidate_id', user.id).maybeSingle();
+      if (turnError || !turn) return res.status(404).json({ ok: false, error: 'This question could not be found.' });
+      if (turn.evaluation) return res.status(200).json({ ok: true, evaluation: turn.evaluation, duplicate: true });
+      if (turn.answer && turn.answer !== answer) return res.status(409).json({ ok: false, error: 'This answer was already submitted. Refresh to continue.' });
+      const claimAt = new Date().toISOString();
+      const staleClaimBefore = new Date(Date.now() - 120000).toISOString();
+      if (!turn.answer) {
+        if (session.status !== 'in_progress') return res.status(409).json({ ok: false, error: 'This interview is not accepting answers.' });
+        const { data: openTurns } = await admin.from('practice_turns').select('id').eq('session_id', session.id).eq('candidate_id', user.id).is('answer', null).order('position').limit(1);
+        if (openTurns?.[0]?.id !== turn.id) return res.status(409).json({ ok: false, error: 'Answer the current question before continuing.' });
+        const { data: saved, error } = await admin.from('practice_turns').update({ answer, submitted_at: claimAt, evaluation_started_at: claimAt }).eq('id', turn.id).is('answer', null).select('id').maybeSingle();
+        if (error || !saved) return res.status(409).json({ ok: false, error: 'This answer was submitted from another tab. Refresh to continue.' });
+        turn.answer = answer;
+        lockedTurnId = turn.id;
+      } else {
+        if (session.status !== 'in_progress') return res.status(409).json({ ok: false, error: 'This interview is not accepting answers.' });
+        if (turn.evaluation_started_at && new Date(turn.evaluation_started_at).getTime() > Date.now() - 120000) {
+          return res.status(409).json({ ok: false, error: 'Your answer is still being reviewed. Wait a moment, then refresh.' });
+        }
+        let claimQuery = admin.from('practice_turns').update({ evaluation_started_at: claimAt }).eq('id', turn.id).eq('candidate_id', user.id);
+        claimQuery = turn.evaluation_started_at ? claimQuery.lt('evaluation_started_at', staleClaimBefore) : claimQuery.is('evaluation_started_at', null);
+        const { data: claimed, error: claimError } = await claimQuery.select('id').maybeSingle();
+        if (claimError || !claimed) return res.status(409).json({ ok: false, error: 'Your answer is already being reviewed. Refresh to continue.' });
+        lockedTurnId = turn.id;
+      }
+      let earlierTurns = [];
+      if (turn.is_follow_up) {
+        const { data: contextTurns } = await admin.from('practice_turns').select('question, answer').eq('session_id', session.id).eq('candidate_id', user.id).eq('root_question_id', turn.root_question_id).lt('position', turn.position).order('position');
+        earlierTurns = contextTurns || [];
+      }
+      const evaluationRaw = await practiceClaude(
+        'You evaluate one interview response fairly using evidence from the answer. For technical questions, check factual correctness against established knowledge and the supplied role context. Do not infer ability from accent, dialect, grammar, identity, or verbosity alone. Evaluate semantic correctness, not keyword matching. For behavioral answers, consider Situation, Task, Action, Result. Be specific and constructive. A follow-up must resolve a concrete gap in this answer and must not repeat the original question.',
+        `Evaluate this answer.\nRole: ${boundedText(session.role_title, 160)}\nJob context: ${boundedText(session.job_description, 3500)}\nCV context: ${boundedText(session.cv_text, 5000)}\nQuestion category: ${turn.category}\nEarlier turns for this question: ${JSON.stringify(earlierTurns.map((item) => ({ question: item.question, answer: boundedText(item.answer, 5000) })))}\nQuestion: ${turn.question}\nCandidate answer: ${answer}\nIs this a follow-up question: ${Boolean(turn.is_follow_up)}\nReturn JSON with score (0-100), criteria object (relevance, structure, specificity, clarity, completeness, accuracy each 0-5 or null), strengths (array), improvements (array), missing_evidence (array), suggested_answer (faithful model example, do not fabricate personal facts), follow_up_needed (boolean), follow_up_question (string or null), follow_up_reason (string or null). A follow-up is useful only when one targeted clarification can resolve a concrete ambiguity or missing evidence.`,
+        1500,
+      );
+      const evaluation = validatePracticeEvaluation(evaluationRaw, turn.question, turn);
+      if (!evaluation) {
+        await admin.from('practice_turns').update({ evaluation_started_at: null }).eq('id', turn.id).eq('candidate_id', user.id);
+        lockedTurnId = null;
+        return res.status(502).json({ ok: false, error: 'Feedback could not be validated. Your answer is saved; retry feedback.' });
+      }
+      const { error: evalSaveError } = await admin.from('practice_turns').update({ evaluation, evaluation_started_at: null }).eq('id', turn.id).eq('candidate_id', user.id);
+      if (evalSaveError) throw new Error('evaluation_save_failed');
+      lockedTurnId = null;
+
+      let followUp = null;
+      if (evaluation.follow_up_needed) {
+        const { data: rootTurns } = await admin.from('practice_turns').select('id, position, is_follow_up, follow_up_count').eq('session_id', session.id).eq('root_question_id', turn.root_question_id).order('position');
+        const count = Math.max(0, (rootTurns || []).length - 1);
+        if (count < 2) {
+          const position = Number(turn.position) + (count + 1) / 10;
+          const { data: inserted, error } = await admin.from('practice_turns').insert({
+            session_id: session.id, candidate_id: user.id, position,
+            question_id: turn.question_id, root_question_id: turn.root_question_id,
+            category: turn.category, question: evaluation.follow_up_question,
+            choices: [], is_follow_up: true, follow_up_count: count + 1,
+          }).select('*').single();
+          if (error) throw new Error('follow_up_save_failed');
+          followUp = inserted;
+        }
+      }
+      return res.status(200).json({ ok: true, evaluation, followUp });
+    }
+
+    if (body.task === 'report') {
+      if (session.status === 'completed' && session.report) return res.status(200).json({ ok: true, report: session.report });
+      const { data: turns, error } = await admin.from('practice_turns').select('position, category, question, answer, evaluation, is_follow_up').eq('session_id', session.id).eq('candidate_id', user.id).order('position');
+      if (error) throw new Error('turn_read_failed');
+      const evaluated = (turns || []).filter((t) => t.answer && t.evaluation && Number.isFinite(Number(t.evaluation.score)));
+      if (!evaluated.length) return res.status(400).json({ ok: false, error: 'Answer at least one question before creating a report.' });
+      const scores = evaluated.map((t) => Number(t.evaluation.score));
+      const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      const grouped = {};
+      evaluated.forEach((t) => { (grouped[t.category] ||= []).push(Number(t.evaluation.score)); });
+      const categoryScores = Object.fromEntries(Object.entries(grouped).map(([key, values]) => [key, Math.round(values.reduce((a, b) => a + b, 0) / values.length)]));
+      const reportRaw = await practiceClaude(
+        'You write a concise, supportive practice-interview debrief grounded only in supplied evaluations. Do not invent scores or personal history. Give practical next steps.',
+        `Role: ${session.role_title}\nInterview evaluations: ${JSON.stringify(evaluated.map((t) => ({ category: t.category, question: t.question, answer: t.answer, evaluation: t.evaluation })))}\nReturn JSON: {"summary":"...","strongest_areas":["..."],"areas_to_improve":["..."],"observations":["..."],"improvement_plan":[{"topic":"...","action":"..."}]}.`,
+        1500,
+      );
+      const strings = (v) => Array.isArray(v) ? v.map((x) => boundedText(x, 350)).filter(Boolean).slice(0, 6) : [];
+      if (!boundedText(reportRaw.summary, 1200)) return res.status(502).json({ ok: false, error: 'The report could not be validated. Your answers are saved; try again.' });
+      const report = {
+        overall_score: overall,
+        category_scores: categoryScores,
+        evaluated_answers: evaluated.length,
+        summary: boundedText(reportRaw.summary, 1200),
+        strongest_areas: strings(reportRaw.strongest_areas),
+        areas_to_improve: strings(reportRaw.areas_to_improve),
+        observations: strings(reportRaw.observations),
+        improvement_plan: Array.isArray(reportRaw.improvement_plan) ? reportRaw.improvement_plan.slice(0, 6).map((item) => ({ topic: boundedText(item?.topic, 160), action: boundedText(item?.action, 500) })).filter((item) => item.topic && item.action) : [],
+      };
+      const { error: reportError } = await admin.from('practice_sessions').update({ status: 'completed', report, completed_at: new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
+      if (reportError) throw new Error('report_save_failed');
+      return res.status(200).json({ ok: true, report });
+    }
+    return res.status(400).json({ ok: false, error: 'Unknown interview task.' });
+  } catch (err) {
+    console.error('[ai/practice_interview]', String(err?.message || err).slice(0, 180));
+    if (lockedTurnId) {
+      await admin.from('practice_turns').update({ evaluation_started_at: null }).eq('id', lockedTurnId).eq('candidate_id', user.id);
+    }
+    const upstream = String(err?.message || '').startsWith('anthropic_');
+    return res.status(upstream ? 502 : 500).json({ ok: false, error: upstream ? 'The interview service is busy. Your saved answers are safe; try again.' : 'The interview could not be saved. Please try again.' });
+  }
+}
+
+// =====================================================================
 // Router
 // =====================================================================
 
@@ -2538,9 +2751,10 @@ export default async function handler(req, res) {
     case 'suggest_skills':     return handleSuggestSkills(req, res, body);
     case 'linkedin_parse':     return handleLinkedInParse(req, res, body);
     case 'interview_kit':      return handleInterviewKit(req, res, body);
+    case 'practice_interview': return handleCandidatePractice(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit|candidate_match.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit|candidate_match|practice_interview.',
       });
   }
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Globe, ScanLine, LayoutGrid, ArrowLeftRight, Linkedin,
   FilePlus2, LayoutTemplate, FolderOpen,
-  Sparkles, Briefcase, BookOpen, Tag, Circle,
+  Sparkles, Briefcase, BookOpen, Tag, MessageSquareMore, Circle,
 } from 'lucide-react';
 
 // Icon key → lucide-react glyph. Keys are set in config/navItems.js so the
@@ -21,6 +21,7 @@ const ICON_MAP = {
   briefcase: Briefcase,
   book: BookOpen,
   tag: Tag,
+  messageSquare: MessageSquareMore,
 };
 
 // Renders the leading icon inside a rounded square. `muted` dims the chip for

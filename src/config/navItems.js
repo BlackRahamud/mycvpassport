@@ -39,6 +39,7 @@ export const NAV_SECTIONS = [
       { label: 'Job Scout',   href: '/scout',   icon: 'sparkles',  desc: 'AI finds jobs matching your CV', badge: 'PRO', requiresPro: true },
       // The live public job board is available to signed-out and signed-in visitors.
       { label: 'Browse Jobs', href: '/jobs',    icon: 'briefcase', desc: 'Explore real jobs across India & the Gulf', badge: 'NEW', requiresAuth: false },
+      { label: 'AI Interviewer', href: '/interviewer/setup', icon: 'messageSquare', desc: 'Practise role-specific interviews', badge: 'NEW', requiresAuth: true },
       { label: 'Blog',        href: '/blog',    icon: 'book',      desc: 'Career advice & resume tips',                  requiresAuth: false },
       { label: 'Pricing',     href: '/pricing', icon: 'tag',       desc: "Plans & what's included",                      requiresAuth: false },
     ],
