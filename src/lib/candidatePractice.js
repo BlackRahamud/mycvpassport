@@ -11,22 +11,45 @@ function raisePracticeError(error, operation) {
   });
   const technical = `${error.message || ""} ${error.details || ""}`;
   if (/schema cache|could not find the table|relation .* does not exist|column .* does not exist/i.test(technical)) {
-    throw new Error("Interview practice is not available yet. Please try again later.");
+    throw new Error("Interview practice data is unavailable. Refresh the page and try again.");
   }
-  throw new Error("We couldn't save or load your interview just now. Please try again.");
+  if (["42501", "PGRST301", "PGRST302"].includes(error.code)) {
+    throw new Error("Your access to this interview could not be verified. Refresh and sign in again.");
+  }
+  if (["23514", "22P02"].includes(error.code)) {
+    throw new Error("Some interview details are invalid. Review your answer and try again.");
+  }
+  throw new Error(operation === "create session"
+    ? "Your interview setup could not be saved. Your details are still here; please retry."
+    : "We couldn't load or update this interview. Your saved answers are unchanged; please retry.");
 }
 
 export async function callPracticeAI(payload) {
   const { data: { session } = {} } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Please sign in again.");
-  const response = await safeFetch("/api/ai?action=practice_interview", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) throw new Error(result.error || "The interview service is temporarily unavailable.");
-  return result;
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const timeout = controller ? window.setTimeout(() => controller.abort(), 65000) : null;
+  try {
+    const response = await safeFetch("/api/ai?action=practice_interview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(payload),
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || "The interview service is temporarily unavailable.");
+    return result;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("This request timed out. Your answer may already be saved; retry safely to continue.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("The connection was interrupted. Your answer may already be saved; check the interview before retrying.");
+    }
+    throw error;
+  } finally {
+    if (timeout !== null) window.clearTimeout(timeout);
+  }
 }
 
 export async function createPracticeSession({ candidateId, roleTitle, jobDescription, cvText, mode, difficulty, category }) {

@@ -152,9 +152,15 @@
 .civ-voice-controls { display: flex; justify-content: center; align-items: center; min-height: 40px; color: var(--civ-muted); font-size: 11px; }
 .civ-voice-controls > span { display: inline-flex; align-items: center; gap: 7px; }
 .civ-waveform { min-height: 88px; padding: 15px 18px; border: 1px solid var(--civ-line); border-radius: 14px; background: var(--civ-surface); display: flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; }
-.civ-waveform i { display: block; width: 4px; height: var(--bar-height); border-radius: 5px; background: linear-gradient(180deg, var(--civ-wave-start), var(--civ-blue)); opacity: .85; }
+.civ-waveform i { display: block; width: 4px; height: var(--bar-height); border-radius: 5px; background: linear-gradient(180deg, var(--civ-wave-start), var(--civ-blue)); opacity: .62; transition: height 90ms cubic-bezier(.4,0,.2,1), opacity 160ms cubic-bezier(.4,0,.2,1); }
+.civ-waveform.is-listening i { opacity: .95; }
+.civ-voice-note { margin: 7px 0 0; color: var(--civ-muted); font-size: 11px; line-height: 1.5; }
 .civ-voice-timer { color: var(--civ-muted); font-variant-numeric: tabular-nums; }
 .civ-voice-controls { gap: 14px; }
+.civ-report-retry { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 18px 0; }
+.civ-report-retry h2, .civ-report-retry p { flex-basis: 100%; margin: 0; }
+.civ-report-retry p { color: var(--civ-muted); font-size: 13px; line-height: 1.55; }
+.civ-button:disabled { cursor: not-allowed; opacity: .55; }
 .civ-text-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
 .civ-conversation { min-height: 460px; grid-column: 1; grid-row: 1; padding: 18px; border: 1px solid var(--civ-line); border-radius: 17px; background: var(--civ-surface); }
 .civ-conversation__scroll { max-height: 580px; overflow: auto; padding-right: 5px; }
@@ -275,6 +281,10 @@
   .civ-status { grid-column: 3; grid-row: 1; }
   .civ-voice-layout { grid-template-columns: 1fr; }
   .civ-voice-stage { min-height: 390px; }
+  .civ-voice-controls { flex-wrap: wrap; }
+  .civ-voice-controls > .civ-button { flex: 1 1 auto; }
+  .civ-waveform { gap: 3px; padding-inline: 10px; }
+  .civ-waveform i { width: 3px; }
   .civ-voice-visual { width: 210px; }
   .civ-text-layout { grid-template-columns: 1fr; }
   .civ-conversation { grid-column: 1; grid-row: 1; min-height: 300px; }
@@ -307,6 +317,7 @@
   .civ-room-head > .civ-button { align-self: stretch; }
   .civ-feedback-columns { grid-template-columns: 1fr; }
   .civ-report-actions { flex-direction: column; }
+  .civ-report-retry > .civ-button { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .civ-app *, .civ-app *::before, .civ-app *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }

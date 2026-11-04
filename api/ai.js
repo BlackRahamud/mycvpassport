@@ -2535,6 +2535,69 @@ async function practiceClaude(system, prompt, maxTokens = 1800) {
 
 const boundedText = boundedPracticeText;
 
+function practiceFailure(code) {
+  const error = new Error(code);
+  error.code = code;
+  return error;
+}
+
+async function ensurePracticeFollowUp(admin, sessionId, candidateId, turn, evaluation) {
+  if (!evaluation?.follow_up_needed || !evaluation.follow_up_question) return null;
+  const nextCount = Number(turn.follow_up_count || 0) + 1;
+  if (nextCount > 2) return null;
+
+  const { data: rootTurns, error: lookupError } = await admin
+    .from('practice_turns')
+    .select('id, position, question_id, is_follow_up, follow_up_count')
+    .eq('session_id', sessionId)
+    .eq('candidate_id', candidateId)
+    .eq('root_question_id', turn.root_question_id)
+    .order('position');
+  if (lookupError) throw practiceFailure('follow_up_lookup_failed');
+
+  const root = (rootTurns || []).find((item) => !item.is_follow_up);
+  if (!root) throw practiceFailure('follow_up_root_missing');
+  const position = Number((Number(root.position) + nextCount / 10).toFixed(2));
+  const existing = (rootTurns || []).find((item) => Number(item.position) === position);
+  if (existing) return existing;
+
+  const existingFollowUps = (rootTurns || []).filter((item) => item.is_follow_up).length;
+  if (existingFollowUps >= 2) return null;
+
+  const row = {
+    session_id: sessionId,
+    candidate_id: candidateId,
+    position,
+    question_id: `${turn.root_question_id}_followup_${nextCount}`,
+    root_question_id: turn.root_question_id,
+    category: turn.category,
+    question: evaluation.follow_up_question,
+    choices: [],
+    is_follow_up: true,
+    follow_up_count: nextCount,
+  };
+  const { data: inserted, error: insertError } = await admin
+    .from('practice_turns')
+    .insert(row)
+    .select('*')
+    .single();
+  if (!insertError) return inserted;
+
+  // Two retries can race after the evaluation is saved. The unique
+  // (session_id, position) constraint makes the deterministic slot idempotent.
+  if (insertError.code === '23505') {
+    const { data: raced, error: racedLookupError } = await admin
+      .from('practice_turns')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('candidate_id', candidateId)
+      .eq('position', position)
+      .maybeSingle();
+    if (!racedLookupError && raced) return raced;
+  }
+  throw practiceFailure('follow_up_save_failed');
+}
+
 async function handleCandidatePractice(req, res, body) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Use POST for this action.' });
   if (!ANTHROPIC_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -2558,23 +2621,36 @@ async function handleCandidatePractice(req, res, body) {
   });
   const sessionId = boundedText(body.sessionId, 64);
   if (!sessionId) return res.status(400).json({ ok: false, error: 'Interview session is missing.' });
-  const { data: session, error: sessionError } = await admin
-    .from('practice_sessions')
-    .select('id, candidate_id, role_title, job_description, cv_text, mode, difficulty, category, status, report')
-    .eq('id', sessionId)
-    .eq('candidate_id', user.id)
-    .maybeSingle();
-  if (sessionError || !session) return res.status(404).json({ ok: false, error: 'This interview could not be found.' });
+  let session;
+  try {
+    const { data, error: sessionError } = await admin
+      .from('practice_sessions')
+      .select('id, candidate_id, role_title, job_description, cv_text, mode, difficulty, category, status, report, completed_at, started_at')
+      .eq('id', sessionId)
+      .eq('candidate_id', user.id)
+      .maybeSingle();
+    if (sessionError) {
+      console.error('[ai/practice_interview] session lookup failed', sessionError.code || sessionError.message);
+      return res.status(500).json({ ok: false, error: 'Interview data could not be loaded. No changes were made; refresh and retry.' });
+    }
+    session = data;
+  } catch (lookupError) {
+    console.error('[ai/practice_interview] session lookup failed', String(lookupError?.message || lookupError).slice(0, 180));
+    return res.status(503).json({ ok: false, error: 'The interview service could not load this session. No changes were made; check your connection and retry.' });
+  }
+  if (!session) return res.status(404).json({ ok: false, error: 'This interview could not be found in your account.' });
 
   let lockedTurnId = null;
   try {
     if (body.task === 'generate') {
-      const { data: existing } = await admin.from('practice_turns').select('id').eq('session_id', session.id).limit(1);
+      const { data: existing, error: existingError } = await admin.from('practice_turns').select('id').eq('session_id', session.id).limit(1);
+      if (existingError) throw practiceFailure('question_read_failed');
       if (existing?.length) {
-        const { data: turns } = await admin.from('practice_turns').select('*').eq('session_id', session.id).order('position');
+        const { data: turns, error: turnsError } = await admin.from('practice_turns').select('*').eq('session_id', session.id).order('position');
+        if (turnsError) throw practiceFailure('question_read_failed');
         if (session.status === 'setup') {
           const { error: statusError } = await admin.from('practice_sessions').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
-          if (statusError) throw new Error('session_start_failed');
+          if (statusError) throw practiceFailure('session_start_failed');
         }
         return res.status(200).json({ ok: true, turns: turns || [] });
       }
@@ -2593,9 +2669,17 @@ async function handleCandidatePractice(req, res, body) {
         is_follow_up: false, follow_up_count: 0,
       }));
       const { data: turns, error } = await admin.from('practice_turns').insert(rows).select('*');
-      if (error) throw new Error('turn_insert_failed');
+      if (error) {
+        // A concurrent/retried generate request may have won the unique
+        // (session_id, position) inserts. Re-read rather than losing progress.
+        const { data: savedTurns, error: readError } = await admin.from('practice_turns').select('*').eq('session_id', session.id).order('position');
+        if (readError || !savedTurns?.length) throw practiceFailure('question_save_failed');
+        const { error: resumeError } = await admin.from('practice_sessions').update({ status: 'in_progress', started_at: session.started_at || new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
+        if (resumeError) throw practiceFailure('session_start_failed');
+        return res.status(200).json({ ok: true, turns: savedTurns, duplicate: true });
+      }
       const { error: statusError } = await admin.from('practice_sessions').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
-      if (statusError) throw new Error('session_start_failed');
+      if (statusError) throw practiceFailure('session_start_failed');
       return res.status(200).json({ ok: true, turns: turns || [] });
     }
 
@@ -2604,17 +2688,34 @@ async function handleCandidatePractice(req, res, body) {
       const answer = boundedText(body.answer, 12000);
       if (!turnId || !answer) return res.status(400).json({ ok: false, error: 'Write or speak an answer before submitting.' });
       const { data: turn, error: turnError } = await admin.from('practice_turns').select('*').eq('id', turnId).eq('session_id', session.id).eq('candidate_id', user.id).maybeSingle();
-      if (turnError || !turn) return res.status(404).json({ ok: false, error: 'This question could not be found.' });
-      if (turn.evaluation) return res.status(200).json({ ok: true, evaluation: turn.evaluation, duplicate: true });
+      if (turnError) throw practiceFailure('answer_read_failed');
+      if (!turn) return res.status(404).json({ ok: false, error: 'This question could not be found.' });
       if (turn.answer && turn.answer !== answer) return res.status(409).json({ ok: false, error: 'This answer was already submitted. Refresh to continue.' });
+      if (turn.evaluation) {
+        const followUp = await ensurePracticeFollowUp(admin, session.id, user.id, turn, turn.evaluation);
+        return res.status(200).json({ ok: true, evaluation: turn.evaluation, followUp, duplicate: true });
+      }
       const claimAt = new Date().toISOString();
       const staleClaimBefore = new Date(Date.now() - 120000).toISOString();
       if (!turn.answer) {
         if (session.status !== 'in_progress') return res.status(409).json({ ok: false, error: 'This interview is not accepting answers.' });
-        const { data: openTurns } = await admin.from('practice_turns').select('id').eq('session_id', session.id).eq('candidate_id', user.id).is('answer', null).order('position').limit(1);
+        const { data: openTurns, error: openTurnsError } = await admin.from('practice_turns').select('id').eq('session_id', session.id).eq('candidate_id', user.id).is('answer', null).order('position').limit(1);
+        if (openTurnsError) throw practiceFailure('answer_read_failed');
         if (openTurns?.[0]?.id !== turn.id) return res.status(409).json({ ok: false, error: 'Answer the current question before continuing.' });
         const { data: saved, error } = await admin.from('practice_turns').update({ answer, submitted_at: claimAt, evaluation_started_at: claimAt }).eq('id', turn.id).is('answer', null).select('id').maybeSingle();
-        if (error || !saved) return res.status(409).json({ ok: false, error: 'This answer was submitted from another tab. Refresh to continue.' });
+        if (error) throw practiceFailure('answer_save_failed');
+        if (!saved) {
+          const { data: concurrent, error: concurrentError } = await admin.from('practice_turns').select('*').eq('id', turn.id).eq('session_id', session.id).eq('candidate_id', user.id).maybeSingle();
+          if (concurrentError) throw practiceFailure('answer_read_failed');
+          if (concurrent?.answer === answer) {
+            if (concurrent.evaluation) {
+              const followUp = await ensurePracticeFollowUp(admin, session.id, user.id, concurrent, concurrent.evaluation);
+              return res.status(200).json({ ok: true, evaluation: concurrent.evaluation, followUp, duplicate: true });
+            }
+            return res.status(409).json({ ok: false, error: 'This answer is already saved and is being reviewed. Refresh shortly to continue.' });
+          }
+          return res.status(409).json({ ok: false, error: 'This answer was submitted from another tab. Refresh to continue.' });
+        }
         turn.answer = answer;
         lockedTurnId = turn.id;
       } else {
@@ -2630,7 +2731,8 @@ async function handleCandidatePractice(req, res, body) {
       }
       let earlierTurns = [];
       if (turn.is_follow_up) {
-        const { data: contextTurns } = await admin.from('practice_turns').select('question, answer').eq('session_id', session.id).eq('candidate_id', user.id).eq('root_question_id', turn.root_question_id).lt('position', turn.position).order('position');
+        const { data: contextTurns, error: contextError } = await admin.from('practice_turns').select('question, answer').eq('session_id', session.id).eq('candidate_id', user.id).eq('root_question_id', turn.root_question_id).lt('position', turn.position).order('position');
+        if (contextError) throw practiceFailure('answer_read_failed');
         earlierTurns = contextTurns || [];
       }
       const evaluationRaw = await practiceClaude(
@@ -2640,39 +2742,35 @@ async function handleCandidatePractice(req, res, body) {
       );
       const evaluation = validatePracticeEvaluation(evaluationRaw, turn.question, turn);
       if (!evaluation) {
-        await admin.from('practice_turns').update({ evaluation_started_at: null }).eq('id', turn.id).eq('candidate_id', user.id);
+        const { error: unlockError } = await admin.from('practice_turns').update({ evaluation_started_at: null }).eq('id', turn.id).eq('candidate_id', user.id);
+        if (unlockError) console.error('[ai/practice_interview] failed to release evaluation lock', unlockError.code || unlockError.message);
         lockedTurnId = null;
         return res.status(502).json({ ok: false, error: 'Feedback could not be validated. Your answer is saved; retry feedback.' });
       }
       const { error: evalSaveError } = await admin.from('practice_turns').update({ evaluation, evaluation_started_at: null }).eq('id', turn.id).eq('candidate_id', user.id);
-      if (evalSaveError) throw new Error('evaluation_save_failed');
+      if (evalSaveError) throw practiceFailure('evaluation_save_failed');
       lockedTurnId = null;
 
-      let followUp = null;
-      if (evaluation.follow_up_needed) {
-        const { data: rootTurns } = await admin.from('practice_turns').select('id, position, is_follow_up, follow_up_count').eq('session_id', session.id).eq('root_question_id', turn.root_question_id).order('position');
-        const count = Math.max(0, (rootTurns || []).length - 1);
-        if (count < 2) {
-          const position = Number(turn.position) + (count + 1) / 10;
-          const { data: inserted, error } = await admin.from('practice_turns').insert({
-            session_id: session.id, candidate_id: user.id, position,
-            question_id: turn.question_id, root_question_id: turn.root_question_id,
-            category: turn.category, question: evaluation.follow_up_question,
-            choices: [], is_follow_up: true, follow_up_count: count + 1,
-          }).select('*').single();
-          if (error) throw new Error('follow_up_save_failed');
-          followUp = inserted;
-        }
-      }
+      const followUp = await ensurePracticeFollowUp(admin, session.id, user.id, turn, evaluation);
       return res.status(200).json({ ok: true, evaluation, followUp });
+    }
+
+    if (body.task === 'end') {
+      if (session.status !== 'completed') {
+        const { error: endError } = await admin.from('practice_sessions')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', session.id).eq('candidate_id', user.id).neq('status', 'completed');
+        if (endError) throw practiceFailure('session_end_failed');
+      }
+      return res.status(200).json({ ok: true, ended: true, report_available: Boolean(session.report) });
     }
 
     if (body.task === 'report') {
       if (session.status === 'completed' && session.report) return res.status(200).json({ ok: true, report: session.report });
       const { data: turns, error } = await admin.from('practice_turns').select('position, category, question, answer, evaluation, is_follow_up').eq('session_id', session.id).eq('candidate_id', user.id).order('position');
-      if (error) throw new Error('turn_read_failed');
+      if (error) throw practiceFailure('turn_read_failed');
       const evaluated = (turns || []).filter((t) => t.answer && t.evaluation && Number.isFinite(Number(t.evaluation.score)));
-      if (!evaluated.length) return res.status(400).json({ ok: false, error: 'Answer at least one question before creating a report.' });
+      if (!evaluated.length) return res.status(400).json({ ok: false, error: 'The interview is ended, but a report needs at least one evaluated answer. Your session is saved in history.' });
       const scores = evaluated.map((t) => Number(t.evaluation.score));
       const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
       const grouped = {};
@@ -2695,9 +2793,12 @@ async function handleCandidatePractice(req, res, body) {
         observations: strings(reportRaw.observations),
         improvement_plan: Array.isArray(reportRaw.improvement_plan) ? reportRaw.improvement_plan.slice(0, 6).map((item) => ({ topic: boundedText(item?.topic, 160), action: boundedText(item?.action, 500) })).filter((item) => item.topic && item.action) : [],
       };
-      const { error: reportError } = await admin.from('practice_sessions').update({ status: 'completed', report, completed_at: new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id);
-      if (reportError) throw new Error('report_save_failed');
-      return res.status(200).json({ ok: true, report });
+      const { data: savedReport, error: reportError } = await admin.from('practice_sessions').update({ status: 'completed', report, completed_at: session.completed_at || new Date().toISOString() }).eq('id', session.id).eq('candidate_id', user.id).is('report', null).select('report').maybeSingle();
+      if (reportError) throw practiceFailure('report_save_failed');
+      if (savedReport?.report) return res.status(200).json({ ok: true, report: savedReport.report });
+      const { data: concurrentReport, error: reportReadError } = await admin.from('practice_sessions').select('report').eq('id', session.id).eq('candidate_id', user.id).maybeSingle();
+      if (reportReadError || !concurrentReport?.report) throw practiceFailure('report_save_failed');
+      return res.status(200).json({ ok: true, report: concurrentReport.report, duplicate: true });
     }
     return res.status(400).json({ ok: false, error: 'Unknown interview task.' });
   } catch (err) {
@@ -2705,8 +2806,29 @@ async function handleCandidatePractice(req, res, body) {
     if (lockedTurnId) {
       await admin.from('practice_turns').update({ evaluation_started_at: null }).eq('id', lockedTurnId).eq('candidate_id', user.id);
     }
-    const upstream = String(err?.message || '').startsWith('anthropic_');
-    return res.status(upstream ? 502 : 500).json({ ok: false, error: upstream ? 'The interview service is busy. Your saved answers are safe; try again.' : 'The interview could not be saved. Please try again.' });
+    const code = err?.code || err?.message || '';
+    const messages = {
+      answer_read_failed: 'We could not check the current question. Your saved answers are unchanged; refresh and retry.',
+      answer_save_failed: 'Your answer could not be saved. It remains in the answer box; please retry.',
+      evaluation_save_failed: 'Your answer is saved, but feedback could not be saved. Retry evaluation; your answer will not be lost.',
+      follow_up_lookup_failed: 'Your answer and feedback are saved, but we could not check for a follow-up. Retry to continue.',
+      follow_up_root_missing: 'Your answer and feedback are saved, but the follow-up could not be linked. Contact support before deleting this session.',
+      follow_up_save_failed: 'Your answer and feedback are saved, but the follow-up could not be saved. Retry to continue.',
+      question_read_failed: 'We could not load the interview questions. Refresh to retry.',
+      question_save_failed: 'The generated questions could not be saved. Your interview setup remains in history; retry from there.',
+      session_start_failed: 'Your questions are saved, but the session could not be started. Refresh to continue.',
+      session_end_failed: 'The interview could not be marked as ended. Your saved answers are unchanged; retry ending it.',
+      turn_read_failed: 'Your interview is ended, but its saved answers could not be loaded for the report. Retry the report.',
+      report_save_failed: 'Your interview is ended and your answers are safe, but the report could not be saved. Retry report generation from history.',
+    };
+    const upstream = String(code).startsWith('anthropic_') || code === 'upstream_timeout';
+    return res.status(upstream ? 502 : 500).json({
+      ok: false,
+      error: messages[code] || (upstream
+        ? 'The interview service is busy. Your saved answers are safe; retry when the service is available.'
+        : 'The interview could not be saved. Your existing answers remain safe; please retry.'),
+      code: messages[code] ? code : undefined,
+    });
   }
 }
 
