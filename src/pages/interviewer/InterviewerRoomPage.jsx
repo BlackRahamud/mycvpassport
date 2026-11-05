@@ -138,20 +138,21 @@ export default function InterviewerRoomPage() {
     if (source === "text") dispatchVoice({ type: "SUBMIT_TEXT", answerId });
     try {
       const result = await callPracticeAI({ task: "evaluate", sessionId, turnId: answerId, answer });
-      const { nextTurns } = await refresh();
+      setTurns((previous) => {
+        const updated = previous.map((turn) => turn.id === answerId
+          ? (result.updatedTurn || { ...turn, answer, evaluation: result.evaluation })
+          : turn);
+        if (result.followUp && !updated.some((turn) => turn.id === result.followUp.id)) updated.push(result.followUp);
+        return updated.sort((a, b) => Number(a.position) - Number(b.position));
+      });
       setDraft("");
       setSelectedChoice("");
       setManualTextFallback(false);
       activeAnswerIdRef.current = null;
       setSubmittedFeedback({ question: current.question, answer, evaluation: result.evaluation, followUp: result.followUp });
       dispatchVoice({ type: "EVALUATION_DONE", answerId });
-      if (voiceEnabledRef.current) {
-        const next = nextTurns.find((turn) => !turn.answer);
-        if (typeof result.spokenResponse === "string" && result.spokenResponse.trim()) {
-          speakQuestion(result.spokenResponse, next && result.spokenTurnId === next.id ? next.id : null);
-        } else if (next) {
-          speakQuestion(next.question, next.id);
-        }
+      if (voiceEnabledRef.current && typeof result.spokenResponse === "string" && result.spokenResponse.trim()) {
+        speakQuestion(result.spokenResponse, result.spokenTurnId || null);
       }
     } catch (submitError) {
       setError(submitError.message || "Your answer could not be reviewed. Any saved answer is safe; retry to continue.");
