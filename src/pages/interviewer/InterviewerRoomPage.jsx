@@ -30,7 +30,7 @@ export default function InterviewerRoomPage() {
   const activeAnswerIdRef = useRef(null);
   const currentTurnIdRef = useRef(null);
   const voice = useDeepgramStream();
-  const { speak: speakTts, cancel: cancelTts, error: ttsError, status: ttsStatus } = useDeepgramTts();
+  const { speak: speakTts, unlock: unlockTts, cancel: cancelTts, error: ttsError, status: ttsStatus } = useDeepgramTts();
   const current = useMemo(() => turns.find((turn) => !turn.answer) || null, [turns]);
   const currentIndex = current ? turns.findIndex((turn) => turn.id === current.id) : turns.length;
   const progress = turns.length ? Math.round(((currentIndex + (current ? 0 : 1)) / turns.length) * 100) : 0;
@@ -71,7 +71,11 @@ export default function InterviewerRoomPage() {
     setVoiceEnabled(true);
     dispatchVoice({ type: "START" });
     setError("");
+    setPlaybackError("");
+    // Must run synchronously in the button's click event, before network awaits.
+    const audioUnlock = unlockTts();
     try {
+      await audioUnlock;
       const opening = await callPracticeAI({ task: "opening", sessionId });
       const greeting = typeof opening.spokenResponse === "string" ? opening.spokenResponse : "";
       if (!greeting) throw new Error("The interviewer greeting could not be loaded.");
@@ -294,7 +298,7 @@ export default function InterviewerRoomPage() {
                     : <span><LoaderCircle className={voiceState.phase === "speaking" || voiceState.phase === "evaluating" || voiceState.phase === "finalizing" || voice.status === "finalizing" || ttsStatus === "loading" ? "civ-spin" : ""} size={16} /> {voice.status === "connecting" ? "Connecting voice…" : statusCopy[voiceState.phase]}</span>}
         </div>
         {(playbackError || ttsError) && <p className="civ-error" role="status">{playbackError || ttsError}</p>}
-        {voiceState.message && <p className="civ-error" role="status">{voiceState.message}</p>}
+        {voiceState.message && voiceState.message !== playbackError && voiceState.message !== ttsError && <p className="civ-error" role="status">{voiceState.message}</p>}
         {error && <p className="civ-error" role="alert">{error}</p>}
         {answerArea}
         {voiceEnabled && voiceState.phase === "ready" && <div className="civ-voice-controls"><button type="button" className="civ-button civ-button--quiet" onClick={() => speakQuestion(current.question, current.id)} disabled={busy}><Play size={15} /> Hear question again</button></div>}
