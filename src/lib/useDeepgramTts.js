@@ -60,13 +60,17 @@ export default function useDeepgramTts() {
     setStatus("idle");
   }, [cleanupPlayback]);
 
-  const speak = useCallback(async (text, onEnded) => {
-    if (typeof text !== "string" || !text.trim() || text.length > 1200) return false;
+  const speak = useCallback((text, onEnded) => {
+    if (typeof text !== "string" || !text.trim() || text.length > 1200) return Promise.resolve(false);
     const sequence = ++sequenceRef.current;
     cleanupPlayback();
     setError("");
     setStatus("loading");
 
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => { if (!settled) { settled = true; resolve(value); } };
+      (async () => {
     try {
       const { data: { session } = {} } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Please sign in again to play interview audio.");
@@ -101,6 +105,7 @@ export default function useDeepgramTts() {
           cleanupPlayback();
           setStatus("idle");
           onEnded?.();
+          finish(true);
         };
         sourceRef.current = source;
         source.start(0);
@@ -118,17 +123,18 @@ export default function useDeepgramTts() {
         cleanupPlayback();
         setStatus("idle");
         onEnded?.();
+        finish(true);
       };
       audio.onerror = () => {
         if (sequence !== sequenceRef.current) return;
         cleanupPlayback();
         setError(AUDIO_ERROR);
         setStatus("error");
+        finish(false);
       };
       await audio.play();
-      if (sequence !== sequenceRef.current) return false;
+      if (sequence !== sequenceRef.current) { finish(false); return; }
       setStatus("speaking");
-      return true;
     } catch (cause) {
       if (sequence !== sequenceRef.current) return false;
       cleanupPlayback();
@@ -137,8 +143,10 @@ export default function useDeepgramTts() {
         : cause?.message || AUDIO_ERROR;
       setError(message);
       setStatus("error");
-      return false;
+      finish(false);
     }
+      })();
+    });
   }, [cleanupPlayback]);
 
   useEffect(() => () => {

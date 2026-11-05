@@ -12,7 +12,7 @@ const AI_EVALUATION = {
   follow_up_needed: false,
   follow_up_question: null,
   follow_up_reason: null,
-  conversational_phrase: "I see.",
+  conversational_response: "You mentioned handling employee support tickets. What was the most challenging issue you resolved?",
 };
 
 const AI_FOLLOW_UP_EVALUATION = {
@@ -206,11 +206,11 @@ test("answer and evaluation are saved independently and retries do not re-evalua
   expect(first.statusCode).toBe(200);
   expect(currentDb.tables.practice_turns[1].answer).toBe("A saved candidate answer.");
   expect(currentDb.tables.practice_turns[1].evaluation.score).toBe(84);
-  expect(first.body.spokenResponse).toBe("I see. What would you do next?");
+  expect(first.body.spokenResponse).toBe("You mentioned handling employee support tickets. What was the most challenging issue you resolved? What would you do next?");
   expect(first.body.spokenTurnId).toBe("turn-2");
   const prompt = JSON.parse(global.fetch.mock.calls[0][1].body).messages[0].content;
   expect(prompt).toContain("I led an earlier project.");
-  expect(prompt).toContain("approved conversational phrase library");
+  expect(prompt).toContain("thoughtful human HR interviewer");
   expect(prompt).toContain("Do not reveal or imply a score");
 
   const retry = await post("evaluate");
@@ -260,14 +260,14 @@ test("follow-up insert failure is recoverable on retry without losing evaluation
   expect(retried.statusCode).toBe(200);
   expect(retried.body.duplicate).toBe(true);
   expect(retried.body.followUp.question).toBe("What result did you measure?");
-  expect(retried.body.spokenResponse).toBe("I see. What result did you measure?");
+  expect(retried.body.spokenResponse).toBe("You mentioned handling employee support tickets. What was the most challenging issue you resolved? What result did you measure?");
   expect(retried.body.followUp.root_question_id).toBe("q1");
   expect(currentDb.tables.practice_turns.filter((turn) => turn.is_follow_up)).toHaveLength(1);
   expect(global.fetch).toHaveBeenCalledTimes(1);
 });
 
 test("rejects unapproved spoken wording without losing the saved answer", async () => {
-  aiResult = { ...AI_EVALUATION, conversational_phrase: "Excellent answer, you scored highly." };
+  aiResult = { ...AI_EVALUATION, conversational_response: "Excellent answer, you scored highly." };
   mockAnthropic(aiResult);
   const response = await post("evaluate");
   expect(response.statusCode).toBe(502);

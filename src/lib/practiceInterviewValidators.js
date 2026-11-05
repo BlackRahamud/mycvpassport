@@ -51,6 +51,13 @@ export function validatePracticeConversationalPhrase(value) {
   return approvedPracticePhrases.has(phrase) ? phrase : null;
 }
 
+export function validatePracticeConversationalResponse(value) {
+  const response = boundedPracticeText(value, 240).replace(/\s+/g, " ");
+  if (!response || response.length < 8 || /\b(score|scored|grade|graded|excellent answer|poor answer|weak answer|strong answer|you passed|you failed)\b/i.test(response)) return null;
+  if (/[<>\u0000-\u001F]/.test(response)) return null;
+  return response;
+}
+
 export function validatePracticeQuestionSet(value) {
   if (!Array.isArray(value?.questions)) return null;
   const allowed = new Set(["technical", "experience", "behavioral", "situational", "motivation"]);
