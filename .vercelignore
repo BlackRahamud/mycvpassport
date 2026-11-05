@@ -1,0 +1,6 @@
+# Legacy Scout API entrypoints. Their handlers live under server/scout/ and
+# the public paths are rewritten to api/scout.js in vercel.json.
+api/scout-matches.js
+api/scout-run.js
+api/scout-tailor.js
+api/scout-universal.js

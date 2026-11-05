@@ -3,6 +3,8 @@ import { handleScoutMatches } from '../../server/scout/matches.js';
 import { handleScoutRun } from '../../server/scout/run.js';
 import { handleScoutTailor } from '../../server/scout/tailor.js';
 import { handleScoutUniversal } from '../../server/scout/universal.js';
+const fs = require('fs');
+const path = require('path');
 
 jest.mock('../../server/scout/matches.js', () => ({ handleScoutMatches: jest.fn() }));
 jest.mock('../../server/scout/run.js', () => ({ handleScoutRun: jest.fn() }));
@@ -48,5 +50,28 @@ describe('Scout API dispatcher', () => {
     for (const [, , scoutHandler] of cases) {
       expect(scoutHandler).not.toHaveBeenCalled();
     }
+  });
+
+  test('Vercel rewrites each original public URL to the shared dispatcher', () => {
+    const configPath = path.resolve(__dirname, '../../vercel.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const rewrites = new Map(config.rewrites.map(({ source, destination }) => [source, destination]));
+
+    expect(rewrites.get('/api/scout-matches')).toBe('/api/scout?scout_action=matches');
+    expect(rewrites.get('/api/scout-run')).toBe('/api/scout?scout_action=run');
+    expect(rewrites.get('/api/scout-tailor')).toBe('/api/scout?scout_action=tailor');
+    expect(rewrites.get('/api/scout-universal')).toBe('/api/scout?scout_action=universal');
+  });
+
+  test('the Vercel deployment ignore excludes the old Scout function paths', () => {
+    const ignorePath = path.resolve(__dirname, '../../.vercelignore');
+    const ignoredPaths = fs.readFileSync(ignorePath, 'utf8').split(/\r?\n/);
+
+    expect(ignoredPaths).toEqual(expect.arrayContaining([
+      'api/scout-matches.js',
+      'api/scout-run.js',
+      'api/scout-tailor.js',
+      'api/scout-universal.js',
+    ]));
   });
 });
