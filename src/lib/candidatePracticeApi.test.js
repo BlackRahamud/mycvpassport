@@ -12,6 +12,7 @@ const AI_EVALUATION = {
   follow_up_needed: false,
   follow_up_question: null,
   follow_up_reason: null,
+  conversational_phrase: "I see.",
 };
 
 const AI_FOLLOW_UP_EVALUATION = {
@@ -116,6 +117,14 @@ function makeTurn() {
   };
 }
 
+function makeNextTurn() {
+  return { ...makeTurn(), id: "turn-2", position: 2, question_id: "q2", root_question_id: "q2", question: "What would you do next?" };
+}
+
+function makeHistoryTurn() {
+  return { ...makeTurn(), id: "turn-0", position: 0, question_id: "q0", root_question_id: "q0", question: "What have you worked on?", answer: "I led an earlier project." };
+}
+
 let handler;
 let currentDb;
 let aiResult = AI_EVALUATION;
@@ -164,15 +173,50 @@ beforeEach(() => {
 
 afterAll(() => { delete global.fetch; });
 
+
+test("opening task returns the backend-approved interviewer greeting", async () => {
+  const response = await post("opening");
+  expect(response.statusCode).toBe(200);
+  expect(response.body.spokenResponse).toMatch(/^Hello, welcome to your practice interview\./);
+});
+
+test("the server never adds a follow-up beyond the 15-turn interview cap", async () => {
+  const cappedTurns = Array.from({ length: 15 }, (_, index) => ({
+    ...makeTurn(),
+    id: `turn-${index + 1}`,
+    position: index + 1,
+    question_id: `q${index + 1}`,
+    root_question_id: `q${index + 1}`,
+    question: `Question ${index + 1}?`,
+    answer: index === 0 ? null : `Answer ${index + 1}`,
+    evaluation: index === 0 ? null : AI_EVALUATION,
+  }));
+  currentDb = makeDb({ practice_sessions: [makeSession()], practice_turns: cappedTurns });
+  aiResult = AI_FOLLOW_UP_EVALUATION;
+  mockAnthropic(aiResult);
+  const response = await post("evaluate");
+  expect(response.statusCode).toBe(200);
+  expect(response.body.followUp).toBeNull();
+  expect(currentDb.tables.practice_turns).toHaveLength(15);
+});
+
 test("answer and evaluation are saved independently and retries do not re-evaluate", async () => {
+  currentDb = makeDb({ practice_sessions: [makeSession()], practice_turns: [makeHistoryTurn(), makeTurn(), makeNextTurn()] });
   const first = await post("evaluate");
   expect(first.statusCode).toBe(200);
-  expect(currentDb.tables.practice_turns[0].answer).toBe("A saved candidate answer.");
-  expect(currentDb.tables.practice_turns[0].evaluation.score).toBe(84);
+  expect(currentDb.tables.practice_turns[1].answer).toBe("A saved candidate answer.");
+  expect(currentDb.tables.practice_turns[1].evaluation.score).toBe(84);
+  expect(first.body.spokenResponse).toBe("I see. What would you do next?");
+  expect(first.body.spokenTurnId).toBe("turn-2");
+  const prompt = JSON.parse(global.fetch.mock.calls[0][1].body).messages[0].content;
+  expect(prompt).toContain("I led an earlier project.");
+  expect(prompt).toContain("approved conversational phrase library");
+  expect(prompt).toContain("Do not reveal or imply a score");
 
   const retry = await post("evaluate");
   expect(retry.statusCode).toBe(200);
   expect(retry.body.duplicate).toBe(true);
+  expect(retry.body.spokenResponse).toBe(first.body.spokenResponse);
   expect(global.fetch).toHaveBeenCalledTimes(1);
 });
 
@@ -216,9 +260,21 @@ test("follow-up insert failure is recoverable on retry without losing evaluation
   expect(retried.statusCode).toBe(200);
   expect(retried.body.duplicate).toBe(true);
   expect(retried.body.followUp.question).toBe("What result did you measure?");
+  expect(retried.body.spokenResponse).toBe("I see. What result did you measure?");
   expect(retried.body.followUp.root_question_id).toBe("q1");
   expect(currentDb.tables.practice_turns.filter((turn) => turn.is_follow_up)).toHaveLength(1);
   expect(global.fetch).toHaveBeenCalledTimes(1);
+});
+
+test("rejects unapproved spoken wording without losing the saved answer", async () => {
+  aiResult = { ...AI_EVALUATION, conversational_phrase: "Excellent answer, you scored highly." };
+  mockAnthropic(aiResult);
+  const response = await post("evaluate");
+  expect(response.statusCode).toBe(502);
+  expect(response.body.error).toMatch(/feedback could not be validated/i);
+  expect(currentDb.tables.practice_turns[0].answer).toBe("A saved candidate answer.");
+  expect(currentDb.tables.practice_turns[0].evaluation).toBeNull();
+  expect(currentDb.tables.practice_turns[0].evaluation_started_at).toBeNull();
 });
 
 test("ending a session preserves answers and is safe to retry", async () => {

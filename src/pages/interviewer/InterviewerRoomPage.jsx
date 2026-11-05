@@ -55,23 +55,40 @@ export default function InterviewerRoomPage() {
     dispatchVoice({ type: "QUESTION_SPEAK" });
     cancelTts();
     speakTts(question, () => {
-      if (playbackId !== playbackSequenceRef.current || currentTurnIdRef.current !== questionId || !voiceEnabledRef.current) return;
+      if (playbackId !== playbackSequenceRef.current || (questionId && currentTurnIdRef.current !== questionId) || !voiceEnabledRef.current) return;
       dispatchVoice({ type: "SPEECH_FINISHED" });
     }).then((played) => {
-      if (played || playbackId !== playbackSequenceRef.current || currentTurnIdRef.current !== questionId || !voiceEnabledRef.current) return;
+      if (played || playbackId !== playbackSequenceRef.current || (questionId && currentTurnIdRef.current !== questionId) || !voiceEnabledRef.current) return;
       const message = ttsError || "Question audio could not play. Read the question and start when you're ready.";
       setPlaybackError(message);
       dispatchVoice({ type: "SPEECH_FAILED", message });
     });
   }, [cancelTts, speakTts, ttsError]);
 
-  const startVoiceInterview = () => {
+  const startVoiceInterview = async () => {
     if (voiceEnabledRef.current || busyRef.current || !current) return;
     voiceEnabledRef.current = true;
     setVoiceEnabled(true);
     dispatchVoice({ type: "START" });
     setError("");
-    speakQuestion(current.question, current.id);
+    try {
+      const opening = await callPracticeAI({ task: "opening", sessionId });
+      const greeting = typeof opening.spokenResponse === "string" ? opening.spokenResponse : "";
+      if (!greeting) throw new Error("The interviewer greeting could not be loaded.");
+      dispatchVoice({ type: "QUESTION_SPEAK" });
+      const played = await speakTts(greeting);
+      if (!played || !voiceEnabledRef.current) {
+        setPlaybackError(ttsError || "The interviewer greeting could not play. You can still read the question and continue.");
+        dispatchVoice({ type: "SPEECH_FAILED", message: "Greeting audio could not play." });
+        return;
+      }
+      if (currentTurnIdRef.current === current.id && voiceEnabledRef.current) {
+        speakQuestion(current.question, current.id);
+      }
+    } catch (openingError) {
+      setError(openingError.message || "The interviewer could not start. Please try again.");
+      dispatchVoice({ type: "ERROR", message: openingError.message || "The interviewer could not start." });
+    }
   };
 
   const startAnswer = async () => {
@@ -126,7 +143,11 @@ export default function InterviewerRoomPage() {
       dispatchVoice({ type: "EVALUATION_DONE", answerId });
       if (voiceEnabledRef.current) {
         const next = nextTurns.find((turn) => !turn.answer);
-        if (next) speakQuestion(next.question, next.id);
+        if (typeof result.spokenResponse === "string" && result.spokenResponse.trim()) {
+          speakQuestion(result.spokenResponse, next && result.spokenTurnId === next.id ? next.id : null);
+        } else if (next) {
+          speakQuestion(next.question, next.id);
+        }
       }
     } catch (submitError) {
       setError(submitError.message || "Your answer could not be reviewed. Any saved answer is safe; retry to continue.");
