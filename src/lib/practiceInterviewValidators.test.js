@@ -1,4 +1,4 @@
-import { validatePracticeEvaluation, validatePracticeQuestionSet } from "./practiceInterviewValidators";
+import { PRACTICE_INTERVIEW_PHRASE_LIBRARY, validatePracticeConversationalPhrase, validatePracticeEvaluation, validatePracticeQuestionSet } from "./practiceInterviewValidators";
 
 test("normalizes question sets and removes invalid multiple choice options", () => {
   const questions = Array.from({ length: 6 }, (_, index) => ({
@@ -29,4 +29,13 @@ test("bounds evaluation scores and suppresses follow-ups at the limit", () => {
   expect(capped.follow_up_needed).toBe(false);
   expect(capped.follow_up_question).toBeNull();
   expect(validatePracticeEvaluation({ ...base, score: 140 }, "Q", {})).toBeNull();
+});
+
+test("only exact phrases from the approved interviewer library are accepted", () => {
+  expect(validatePracticeConversationalPhrase("I see.")).toBe("I see.");
+  expect(validatePracticeConversationalPhrase("Hmm, interesting.")).toBe("Hmm, interesting.");
+  expect(validatePracticeConversationalPhrase("Could you expand on that?")).toBe("Could you expand on that?");
+  expect(validatePracticeConversationalPhrase("Great answer, you scored 95.")).toBeNull();
+  expect(validatePracticeConversationalPhrase("That was a weak answer.")).toBeNull();
+  expect(Object.values(PRACTICE_INTERVIEW_PHRASE_LIBRARY).flat()).toHaveLength(29);
 });

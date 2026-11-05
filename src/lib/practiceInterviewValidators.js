@@ -2,6 +2,55 @@ export function boundedPracticeText(value, max) {
   return String(value || "").trim().slice(0, max);
 }
 
+export const PRACTICE_INTERVIEW_PHRASE_LIBRARY = Object.freeze({
+  neutral: [
+    "Hmm, interesting.",
+    "I see.",
+    "That's interesting. Tell me more.",
+    "Right, I understand.",
+    "Interesting perspective.",
+    "Okay, I follow.",
+    "That's an interesting point.",
+  ],
+  probing: [
+    "Let's go a little deeper into that.",
+    "Could you walk me through your thinking?",
+    "What was your personal contribution?",
+    "What happened next?",
+    "Could you expand on that?",
+    "What led you to that decision?",
+    "What did you learn from that experience?",
+  ],
+  clarification: [
+    "Could you be a little more specific?",
+    "Can you give me a practical example?",
+    "I want to understand that a little better.",
+    "What do you mean by that in practical terms?",
+    "Could you explain that another way?",
+  ],
+  challenging: [
+    "What if things hadn't gone according to plan?",
+    "How would you respond if someone challenged that approach?",
+    "Are there any other ways you could have handled that situation?",
+    "What would you do differently with the benefit of hindsight?",
+    "How would you handle that if you had fewer resources?",
+  ],
+  transition: [
+    "Alright, let's move on.",
+    "I'd like to explore another area.",
+    "Let's switch gears for a moment.",
+    "Let me ask you about a different situation.",
+    "I'd like to take that in a slightly different direction.",
+  ],
+});
+
+const approvedPracticePhrases = new Set(Object.values(PRACTICE_INTERVIEW_PHRASE_LIBRARY).flat());
+
+export function validatePracticeConversationalPhrase(value) {
+  const phrase = boundedPracticeText(value, 140);
+  return approvedPracticePhrases.has(phrase) ? phrase : null;
+}
+
 export function validatePracticeQuestionSet(value) {
   if (!Array.isArray(value?.questions)) return null;
   const allowed = new Set(["technical", "experience", "behavioral", "situational", "motivation"]);
