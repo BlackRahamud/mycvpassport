@@ -70,6 +70,10 @@
     { "source": "/indian-cv-uae", "destination": "/india-to-uae", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/api/scout-matches", "destination": "/api/scout?scout_action=matches" },
+    { "source": "/api/scout-run", "destination": "/api/scout?scout_action=run" },
+    { "source": "/api/scout-tailor", "destination": "/api/scout?scout_action=tailor" },
+    { "source": "/api/scout-universal", "destination": "/api/scout?scout_action=universal" },
     { "source": "/((?!api/|static/).*)", "destination": "/spa.html" }
   ]
 }
