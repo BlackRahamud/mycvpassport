@@ -4312,6 +4312,11 @@ function ResumeBuilder({
         resumeId
       );
       setResumeId(saved.id);
+      logEvent("cv_save_completed", {
+        template_id: selectedTemplate?.id ?? null,
+        is_new_cv: !resumeId,
+        is_mobile: isMobile,
+      });
       setSaveStatus("saved");
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
       setUserHasEdited(false);
@@ -4355,12 +4360,15 @@ function ResumeBuilder({
   }, [expModalHighEffortDirty, finalizeCloseExperienceModal]);
 
   const handleDownload = async (opts = {}) => {
-    logEvent("download_clicked", {
-      cv_id: resumeId ?? null,
-      format: "pdf",
-      is_authenticated: !!user?.id,
-      is_mobile: isMobile,
-    });
+    // This handler runs once for the user's click and again after synthesis.
+    // Count intent only on the first call, not the internal continuation.
+    if (!opts.skipSynthesis) {
+      logEvent("download_clicked", {
+        format: "pdf",
+        is_authenticated: !!user?.id,
+        is_mobile: isMobile,
+      });
+    }
     // Free download spent → route to pricing rather than start synthesis and
     // hit a server 402. Guard fires for both the click and the post-synthesis
     // download call. Guide mode keeps its own flow and is exempt.
@@ -4386,6 +4394,12 @@ function ResumeBuilder({
         await downloadResumeFromPreview(resume, el, {
           maxPages: pdfTargetPages,
           templateId: selectedTemplate?.id,
+        });
+        logEvent("cv_download_completed", {
+          format: "pdf",
+          template_id: selectedTemplate?.id ?? null,
+          is_mobile: isMobile,
+          is_authenticated: !!user?.id,
         });
         completedRef.current = true;
         writeFabMemory({
