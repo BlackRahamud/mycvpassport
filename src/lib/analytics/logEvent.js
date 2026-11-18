@@ -20,8 +20,27 @@ import { currentAuthUserId } from "./authState";
 // non-identifying parameters, are forwarded: no user ids, emails or CV text.
 // window.gtag only exists once GA4 has loaded, so if it is absent (blocked,
 // or waiting for consent) this is a silent no-op.
-const GA4_EVENTS = new Set(["upsell_auto_shown", "upgrade_clicked", "checkout_started", "job_discovery_search", "job_discovery_browse_all", "job_discovery_job_open"]);
-const GA4_PARAMS = ["plan", "price", "currency", "gateway", "cta_location", "surface", "source", "market"];
+const GA4_EVENTS = new Set([
+  "upsell_auto_shown",
+  "upgrade_clicked",
+  "checkout_started",
+  "job_discovery_search",
+  "job_discovery_browse_all",
+  "job_discovery_job_open",
+  "builder_loaded",
+  "preview_clicked",
+  "download_clicked",
+  "download_blocked",
+  "cv_save_completed",
+  "cv_download_completed",
+  "auth_page_loaded",
+  "pricing_viewed",
+  "template_card_clicked",
+  "template_applied",
+  "cv_only_result_shown",
+  "jd_nudge_converted",
+]);
+const GA4_PARAMS = ["plan", "price", "currency", "gateway", "cta_location", "surface", "source", "market", "format", "is_authenticated", "is_mobile", "template_id", "template_name", "is_new_cv", "mode_shown", "is_first_time_visitor", "route_origin", "score", "industry", "reason", "cta_section"];
 
 function trackGA4(eventType, meta) {
   if (!GA4_EVENTS.has(eventType)) return;
