@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import HumanCvPromoModal from './components/marketing/HumanCvPromoModal';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from './appSupabaseClient';
 import { Helmet } from 'react-helmet-async';
@@ -1097,6 +1098,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
           </div>
         </footer>
 
+        <HumanCvPromoModal />
         <CookieBanner />
         <FloatingActionButton />
 
