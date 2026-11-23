@@ -620,7 +620,7 @@ export default function AdminPanelV3({ preview }) {
               <span style={{ fontSize: 11, color: ACCENT, background: "#EDF1FF", borderRadius: 999, padding: "5px 10px", fontWeight: 700 }}>{String(order.status || "new").replace(/_/g, " ")}</span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, margin: "16px 0" }}>
-              {[["Service", String(order.service_type || "").replace(/_/g, " ")],["Market", order.market],["Target role", order.target_role],["Experience", order.experience],["Received", new Date(order.created_at).toLocaleString()]].map(([label,value]) => <div key={label} style={{ background: "var(--surface2)", borderRadius: 11, padding: 11 }}><p style={{ margin: 0, color: "var(--muted2)", fontSize: 10, textTransform: "uppercase", fontWeight: 800 }}>{label}</p><p style={{ margin: "5px 0 0", fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>{value || "—"}</p></div>)}
+              {[["Service", "Human CV writing"],["Delivery", String(order.delivery_speed || "standard").toUpperCase()],["Price", `₹${Number(order.price_minor || 0) / 100} ${order.currency || "INR"}`],["Payment", order.payment_status || "pending"],["Market", order.market],["Target role", order.target_role],["Received", new Date(order.created_at).toLocaleString()]].map(([label,value]) => <div key={label} style={{ background: "var(--surface2)", borderRadius: 11, padding: 11 }}><p style={{ margin: 0, color: "var(--muted2)", fontSize: 10, textTransform: "uppercase", fontWeight: 800 }}>{label}</p><p style={{ margin: "5px 0 0", fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>{value || "—"}</p></div>)}
             </div>
             {order.notes && <p style={{ whiteSpace: "pre-wrap", color: "var(--soft)", fontSize: 13, lineHeight: 1.6 }}>{order.notes}</p>}
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
@@ -632,7 +632,7 @@ export default function AdminPanelV3({ preview }) {
                 if (result.ok) { setCareerOrders((items) => items.map((item) => item.id === order.id ? { ...item, status } : item)); showToast("Request status updated"); }
                 else showToast(result.error || "Could not update request", false);
               }} style={{ border: "1px solid var(--border2)", borderRadius: 9, padding: "9px 10px", background: "var(--card)", color: "var(--text)", font: "inherit", fontSize: 12 }}>
-                {["new","contacted","awaiting_payment","in_progress","delivered","cancelled"].map((status) => <option key={status} value={status}>{status.replace(/_/g," ")}</option>)}
+                {["new","awaiting_payment","paid","in_progress","delivered","cancelled"].map((status) => <option key={status} value={status}>{status.replace(/_/g," ")}</option>)}
               </select>
             </div>
             <details style={{ marginTop: 14 }}>
