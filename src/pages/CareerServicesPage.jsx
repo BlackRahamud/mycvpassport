@@ -1,175 +1,271 @@
 import React, { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import safeFetch from "../lib/net/safeFetch";
+import { logEvent } from "../lib/analytics/logEvent";
 
-const SERVICES = [
-  { id: "cv_creation", title: "Professional CV creation", detail: "A recruiter-ready CV written around your experience and target role." },
-  { id: "cv_ats", title: "CV + ATS improvement", detail: "Improve structure, keywords and clarity before you apply." },
-  { id: "career_consultation", title: "One-to-one career consultation", detail: "A focused session to plan your next career move." },
-  { id: "gulf_guidance", title: "India-to-Gulf career guidance", detail: "Practical guidance on GCC CV expectations and job-search preparation." },
-];
-
+const CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
+const DELIVERY = {
+  standard: { label: "Standard", price: 199, time: "Delivery within 3 hours" },
+  express: { label: "Express", price: 299, time: "Priority · 30–60 minutes*" },
+};
 const inputStyle = {
-  width: "100%", boxSizing: "border-box", border: "1px solid #E2E7EF", borderRadius: 12,
-  background: "#fff", color: "#172033", padding: "13px 14px", font: "inherit", fontSize: 14,
-  outlineColor: "#7B91C8",
+  width: "100%", boxSizing: "border-box", border: "1px solid #E3DFD9", borderRadius: 11,
+  background: "#fff", color: "#22252B", padding: "12px 13px", font: "inherit", fontSize: 13,
+  outlineColor: "#C87538",
 };
 
-export default function CareerServicesPage({ user }) {
-  const navigate = useNavigate();
-  const [form, setForm] = useState({
-    full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || "",
-    email: user?.email || "",
-    phone: "",
-    market: "India",
-    service_type: "cv_creation",
-    target_role: "",
-    experience: "",
-    notes: "",
+function loadRazorpay() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve(window.Razorpay);
+    const existing = document.querySelector(`script[src="${CHECKOUT_SCRIPT}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.Razorpay), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Unable to load secure checkout")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = CHECKOUT_SCRIPT;
+    script.async = true;
+    script.onload = () => resolve(window.Razorpay);
+    script.onerror = () => reject(new Error("Unable to load secure checkout"));
+    document.body.appendChild(script);
   });
+}
+
+export default function CareerServicesPage({ user }) {
+  const [mode, setMode] = useState("upload");
+  const [delivery, setDelivery] = useState("standard");
   const [file, setFile] = useState(null);
+  const [notes, setNotes] = useState("");
+  const [name, setName] = useState(user?.user_metadata?.full_name || user?.user_metadata?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [submitted, setSubmitted] = useState(null);
+  const [paid, setPaid] = useState(false);
+  const price = DELIVERY[delivery];
 
-  const selectedService = useMemo(
-    () => SERVICES.find((service) => service.id === form.service_type) || SERVICES[0],
-    [form.service_type]
-  );
+  const hasSource = useMemo(() => mode === "upload" ? !!file : notes.trim().length >= 20, [mode, file, notes]);
 
-  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-
-  async function handleSubmit(event) {
+  async function handleCheckout(event) {
     event.preventDefault();
     setError("");
     if (!user?.id) {
-      navigate("/auth");
+      setError("Please sign in to continue with secure payment.");
+      return;
+    }
+    if (!name.trim() || !email.trim() || !phone.trim() || !role.trim()) {
+      setError("Please complete your name, email, phone and target role.");
+      return;
+    }
+    if (!hasSource) {
+      setError(mode === "upload" ? "Please choose your existing CV file." : "Please add a few details about your work and experience (at least 20 characters).");
       return;
     }
     if (file) {
-      const validType = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(file.type);
-      if (!validType) return setError("Please upload a PDF or DOCX file.");
+      const valid = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(file.type);
+      if (!valid) return setError("Please upload a PDF or DOCX file.");
       if (file.size > 8 * 1024 * 1024) return setError("Your CV must be 8 MB or smaller.");
     }
 
     setBusy(true);
     let uploadedPath = null;
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+
       if (file) {
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-90);
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
         uploadedPath = `${user.id}/${Date.now()}-${safeName}`;
-        const { error: uploadError } = await supabase.storage
-          .from("career-service-files")
+        const { error: uploadError } = await supabase.storage.from("career-service-files")
           .upload(uploadedPath, file, { upsert: false, contentType: file.type });
         if (uploadError) throw uploadError;
       }
 
       const payload = {
         user_id: user.id,
-        full_name: form.full_name.trim(),
-        email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim(),
-        market: form.market,
-        service_type: form.service_type,
-        target_role: form.target_role.trim(),
-        experience: form.experience.trim(),
-        notes: form.notes.trim(),
+        full_name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        market: "India",
+        service_type: "cv_creation",
+        delivery_speed: delivery,
+        price_minor: price.price * 100,
+        currency: "INR",
+        target_role: role.trim(),
+        experience: "Provided in CV / notes",
+        notes: mode === "notes" ? notes.trim() : "",
         cv_file_path: uploadedPath,
       };
-      const { data, error: insertError } = await supabase
-        .from("career_service_orders")
-        .insert(payload)
-        .select("id,created_at")
-        .single();
+      const { data: order, error: insertError } = await supabase.from("career_service_orders")
+        .insert(payload).select("id").single();
       if (insertError) throw insertError;
-      setSubmitted(data);
+
+      const orderResponse = await safeFetch("/api/razorpay?action=order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cv_service: delivery, career_order_id: order.id }),
+      });
+      const orderData = await orderResponse.json().catch(() => ({}));
+      if (!orderResponse.ok) throw new Error(orderData.error || "Could not start payment.");
+
+      const Razorpay = await loadRazorpay();
+      const key = process.env.REACT_APP_RAZORPAY_KEY_ID;
+      if (!key) throw new Error("Payment gateway is not configured.");
+      const checkout = new Razorpay({
+        key,
+        order_id: orderData.orderId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "CVPassport",
+        description: `Human-written CV · ${price.label}`,
+        prefill: { name: name.trim(), email: email.trim(), contact: phone.trim() },
+        theme: { color: "#B65D2C" },
+        handler: async (response) => {
+          try {
+            const verify = await safeFetch("/api/razorpay?action=verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                userId: user.id,
+                cv_service: delivery,
+                career_order_id: order.id,
+              }),
+            });
+            const verified = await verify.json().catch(() => ({}));
+            if (!verify.ok || !verified.success) throw new Error(verified.error || "Payment verification failed.");
+            setPaid(true);
+            logEvent("purchase_completed", { plan: `human_cv_${delivery}`, amount: price.price, currency: "INR", gateway: "razorpay" });
+          } catch (verifyError) {
+            setError(verifyError.message || "Payment verification is pending. Contact support with your payment reference.");
+          }
+        },
+        modal: { ondismiss: () => setError("Checkout closed. Your request is saved; you can try again.") },
+      });
+      checkout.on("payment.failed", (response) => setError(response?.error?.description || "Payment failed. Please try again."));
+      logEvent("checkout_started", { plan: `human_cv_${delivery}`, amount: price.price, currency: "INR", gateway: "razorpay" });
+      checkout.open();
     } catch (submitError) {
-      if (uploadedPath) {
-        await supabase.storage.from("career-service-files").remove([uploadedPath]).catch(() => {});
-      }
-      setError(submitError?.message || "We couldn't submit your request. Please try again.");
+      if (uploadedPath) await supabase.storage.from("career-service-files").remove([uploadedPath]).catch(() => {});
+      setError(submitError?.message || "We couldn't start your order. Please try again.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#F6F7F4", color: "#172033", fontFamily: "'Outfit','Segoe UI',sans-serif" }}>
+    <main style={{ minHeight: "100vh", background: "#F7F1EB", color: "#22252B", fontFamily: "'Outfit','Segoe UI',sans-serif" }}>
       <style>{`
-        .cs-wrap{max-width:1120px;margin:0 auto;padding:28px 24px 80px}
-        .cs-grid{display:grid;grid-template-columns:1fr 1.12fr;gap:28px;align-items:start}
-        .cs-card{background:#fff;border:1px solid #E8EBEF;border-radius:22px;box-shadow:0 16px 45px rgba(27,42,65,.045)}
-        .cs-field{display:grid;gap:7px}
-        .cs-label{font-size:12px;font-weight:700;color:#536078;letter-spacing:.02em}
-        .cs-service{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #E5E9F0;border-radius:14px;background:#fff;text-align:left;cursor:pointer;width:100%;color:inherit}
-        .cs-service[aria-pressed="true"]{border-color:#8094C7;background:#F5F7FC;box-shadow:0 0 0 2px rgba(91,117,178,.09)}
-        .cs-service-dot{width:18px;height:18px;border:1.5px solid #AAB4C4;border-radius:50%;flex:0 0 18px;margin-top:2px;display:grid;place-items:center}
-        .cs-service[aria-pressed="true"] .cs-service-dot{border-color:#526B9F}
-        .cs-service[aria-pressed="true"] .cs-service-dot:after{content:"";width:8px;height:8px;border-radius:50%;background:#526B9F}
-        @media(max-width:800px){.cs-grid{grid-template-columns:1fr}.cs-wrap{padding:20px 16px 60px}}
+        .hcv-wrap{max-width:1120px;margin:0 auto;padding:24px 24px 70px}
+        .hcv-panel{background:rgba(255,255,255,.82);border:1px solid #E8DDD2;border-radius:18px;box-shadow:0 18px 50px rgba(74,47,30,.08)}
+        .hcv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+        .hcv-mode{border:1px solid #E3D8CE;background:#fff;border-radius:11px;padding:12px 14px;text-align:left;color:#3D3028;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+        .hcv-mode[aria-pressed="true"]{border-color:#B65D2C;background:#FFF5EC;color:#9A431E}
+        .hcv-speed{border:1px solid #E5DCD4;border-radius:13px;padding:14px;background:#fff;text-align:left;cursor:pointer;color:#2B2B2B;font:inherit}
+        .hcv-speed[aria-pressed="true"]{border:1.5px solid #B65D2C;background:#FFF7F0;box-shadow:0 0 0 2px rgba(182,93,44,.08)}
+        .hcv-label{font-size:10px;letter-spacing:.08em;font-weight:800;color:#78685C}
+        @media(max-width:760px){.hcv-grid{grid-template-columns:1fr}.hcv-wrap{padding:18px 14px 50px}}
       `}</style>
-      <div className="cs-wrap">
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 44 }}>
-          <Link to="/" style={{ color: "#172033", textDecoration: "none", fontWeight: 800, letterSpacing: "-.03em", fontSize: 20 }}>CVPassport</Link>
-          <Link to="/" style={{ color: "#69758A", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>Back to home</Link>
+      <div className="hcv-wrap">
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+          <Link to="/" style={{ color: "#24262C", textDecoration: "none", fontWeight: 850, fontSize: 19, letterSpacing: "-.04em" }}>❯❯ CVPassport</Link>
+          <Link to="/" style={{ color: "#7A6B60", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>Back to home</Link>
         </header>
 
-        {submitted ? (
-          <section className="cs-card" style={{ maxWidth: 650, margin: "50px auto", padding: "48px 34px", textAlign: "center" }}>
-            <div style={{ width: 54, height: 54, borderRadius: 18, background: "#EAF3EE", color: "#26734B", display: "grid", placeItems: "center", margin: "0 auto 20px", fontSize: 25 }}>✓</div>
-            <p style={{ color: "#6D7A8E", fontSize: 12, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Request received</p>
-            <h1 style={{ fontSize: 30, letterSpacing: "-.04em", margin: "10px 0" }}>Your next career move starts here.</h1>
-            <p style={{ color: "#66738A", lineHeight: 1.7 }}>We've received your {selectedService.title.toLowerCase()} request. Our team will contact you at <strong>{form.email}</strong> to confirm the scope, price and next steps.</p>
-            <p style={{ color: "#7D8798", fontSize: 12, marginTop: 22 }}>Reference: {submitted.id}</p>
-            <Link to="/" style={{ display: "inline-flex", marginTop: 16, padding: "13px 20px", borderRadius: 12, background: "#172033", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 14 }}>Return to CVPassport</Link>
+        {paid ? (
+          <section className="hcv-panel" style={{ maxWidth: 650, margin: "70px auto", padding: 38, textAlign: "center" }}>
+            <div style={{ width: 52, height: 52, borderRadius: 50, display: "grid", placeItems: "center", margin: "0 auto 16px", background: "#E8F4E9", color: "#267345", fontSize: 26 }}>✓</div>
+            <p className="hcv-label">PAYMENT CONFIRMED</p>
+            <h1 style={{ fontSize: 30, margin: "10px 0" }}>We'll take it from here.</h1>
+            <p style={{ color: "#76685F", lineHeight: 1.7 }}>Your CV order is paid. Our team will review your file and notes, then prepare your CV for delivery. A confirmation will be sent to {email}.</p>
+            <p style={{ color: "#8A7A6F", fontSize: 12 }}>Keep an eye on your email for delivery updates.</p>
+            <Link to="/" style={{ display: "inline-flex", padding: "12px 18px", borderRadius: 10, background: "#292D35", color: "#fff", textDecoration: "none", fontWeight: 700 }}>Back to CVPassport</Link>
           </section>
         ) : (
           <>
-            <div style={{ maxWidth: 720, marginBottom: 34 }}>
-              <p style={{ color: "#6C7FA7", fontWeight: 800, fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", margin: "0 0 14px" }}>CVPassport Career Services</p>
-              <h1 style={{ fontSize: "clamp(36px,5vw,58px)", lineHeight: 1.04, letterSpacing: "-.055em", margin: "0 0 18px", fontWeight: 800 }}>Get expert help with your next career move.</h1>
-              <p style={{ maxWidth: 620, color: "#68758A", fontSize: 16, lineHeight: 1.75, margin: 0 }}>Practical, human support for your CV, job search and Gulf career plans — built for candidates in India and across the GCC.</p>
-            </div>
+            <section className="hcv-panel" style={{ padding: "22px 26px", marginBottom: 18, display: "grid", gridTemplateColumns: "1.1fr .9fr", gap: 18, alignItems: "center", overflow: "hidden" }}>
+              <div>
+                <span style={{ display: "inline-flex", padding: "5px 9px", borderRadius: 99, background: "#FCE7D8", color: "#A94F25", fontSize: 10, fontWeight: 800, marginBottom: 10 }}>♙ Human CV Service</span>
+                <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(29px,4vw,43px)", lineHeight: 1.05, letterSpacing: "-.045em", margin: "0 0 10px" }}>We’ll Take It From <em style={{ color: "#B65D2C" }}>Here.</em></h1>
+                <p style={{ margin: 0, maxWidth: 520, color: "#71645A", fontSize: 13, lineHeight: 1.65 }}>Share what you have, and our CV experts will craft a clean, ATS-friendly CV that gets you noticed.</p>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18, color: "#59483C", fontSize: 11, fontWeight: 700 }}>
+                  <span>✎ Human written</span><span>▤ ATS-friendly</span><span>▣ PDF + Word</span><span>↻ One revision</span>
+                </div>
+              </div>
+              <div style={{ minHeight: 145, borderRadius: 14, background: "radial-gradient(circle at 70% 30%,#F8D7BF,transparent 55%),linear-gradient(135deg,#F5E6D9,#FFF9F3)", display: "grid", placeItems: "center", color: "#A65B37", fontFamily: "Georgia,serif", fontSize: 20, textAlign: "center", padding: 18 }}>
+                <div style={{ transform: "rotate(-5deg)", background: "#fff", padding: "17px 25px", boxShadow: "0 12px 25px rgba(90,55,35,.12)", borderRadius: 7 }}>CV <span style={{ color: "#B65D2C" }}>Ready</span><div style={{ fontFamily: "Arial", fontSize: 9, marginTop: 7, color: "#8792A2" }}>YOUR NEXT CHAPTER</div></div>
+              </div>
+            </section>
 
-            <div className="cs-grid">
-              <section>
-                <div style={{ display: "grid", gap: 12 }}>
-                  {SERVICES.map((service) => (
-                    <button key={service.id} type="button" className="cs-service" aria-pressed={form.service_type === service.id} onClick={() => update("service_type", service.id)}>
-                      <span className="cs-service-dot" />
-                      <span><strong style={{ display: "block", fontSize: 14, marginBottom: 4 }}>{service.title}</strong><span style={{ color: "#748096", fontSize: 12.5, lineHeight: 1.5 }}>{service.detail}</span></span>
+            <form className="hcv-panel" onSubmit={handleCheckout} style={{ padding: 22 }}>
+              <div className="hcv-grid" style={{ marginBottom: 14 }}>
+                <button type="button" className="hcv-mode" aria-pressed={mode === "upload"} onClick={() => setMode("upload")}>▧　Mode 1　Drop Existing CV & Notes</button>
+                <button type="button" className="hcv-mode" aria-pressed={mode === "notes"} onClick={() => setMode("notes")}>♩　Mode 2　Quick Notes / Rough Details</button>
+              </div>
+              <div className="hcv-grid" style={{ alignItems: "start" }}>
+                <section>
+                  {mode === "upload" ? (
+                    <label htmlFor="hcv-file" style={{ display: "grid", placeItems: "center", minHeight: 112, padding: 16, border: "1px dashed #C9B7A8", borderRadius: 13, background: "#FFFCF9", cursor: "pointer", textAlign: "center" }}>
+                      <strong style={{ fontSize: 13 }}>＋ Upload your CV file or browse</strong>
+                      <span style={{ color: "#82756C", fontSize: 11, marginTop: 5 }}>PDF or Word · max 8 MB</span>
+                      <input id="hcv-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} style={{ marginTop: 12, maxWidth: "100%" }} />
+                      {file && <span style={{ marginTop: 7, color: "#277348", fontSize: 11, fontWeight: 700 }}>{file.name}</span>}
+                    </label>
+                  ) : (
+                    <div>
+                      <label className="hcv-label" htmlFor="hcv-notes">YOUR EXPERIENCE / ROUGH NOTES</label>
+                      <textarea id="hcv-notes" rows={7} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Write your previous roles, responsibilities, achievements, education and skills. Don't worry about formatting..." style={{ ...inputStyle, marginTop: 8, resize: "vertical", lineHeight: 1.6 }} />
+                    </div>
+                  )}
+                  <div style={{ marginTop: 15 }}>
+                    <label className="hcv-label" htmlFor="hcv-role">TARGET ROLE / ANY CHANGES? (OPTIONAL)</label>
+                    <input id="hcv-role" value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Target role is Marketing Manager..." style={{ ...inputStyle, marginTop: 7 }} required />
+                  </div>
+                </section>
+
+                <section>
+                  <div className="hcv-label" style={{ marginBottom: 8 }}>YOUR DETAILS</div>
+                  <div style={{ display: "grid", gap: 9 }}>
+                    <input aria-label="Full name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={inputStyle} required />
+                    <input aria-label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" style={inputStyle} required />
+                    <input aria-label="Phone or WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone / WhatsApp" style={inputStyle} required />
+                    {!user && <p style={{ margin: 0, color: "#9B5A2D", fontSize: 11 }}>Sign in is required before secure checkout.</p>}
+                  </div>
+                </section>
+              </div>
+
+              <div style={{ marginTop: 22, borderTop: "1px solid #EDE3DA", paddingTop: 18 }}>
+                <div className="hcv-label" style={{ marginBottom: 10 }}>CHOOSE YOUR DELIVERY SPEED</div>
+                <div className="hcv-grid">
+                  {Object.entries(DELIVERY).map(([key, option]) => (
+                    <button type="button" key={key} className="hcv-speed" aria-pressed={delivery === key} onClick={() => setDelivery(key)}>
+                      <span className="hcv-label" style={{ color: "#B65D2C" }}>{option.label.toUpperCase()}</span>
+                      <strong style={{ display: "block", fontSize: 25, margin: "3px 0" }}>₹{option.price}</strong>
+                      <span style={{ color: "#7D7067", fontSize: 11 }}>{option.time}</span>
                     </button>
                   ))}
                 </div>
-                <div style={{ marginTop: 18, padding: 20, borderRadius: 18, background: "#EDEFEA" }}>
-                  <p style={{ margin: "0 0 7px", fontWeight: 800, fontSize: 13 }}>What happens next?</p>
-                  <p style={{ margin: 0, color: "#667187", fontSize: 13, lineHeight: 1.7 }}>Submit your details. We'll review your request, contact you to confirm the service and quote, then arrange payment and delivery. No recruitment or visa outcome is guaranteed.</p>
-                </div>
-              </section>
+              </div>
 
-              <form className="cs-card" onSubmit={handleSubmit} style={{ padding: 26, display: "grid", gap: 16 }}>
-                <div style={{ marginBottom: 2 }}>
-                  <p style={{ margin: 0, color: "#77839A", fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Your request</p>
-                  <h2 style={{ margin: "7px 0 0", fontSize: 22, letterSpacing: "-.03em" }}>{selectedService.title}</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, marginTop: 18, flexWrap: "wrap" }}>
+                <ul style={{ margin: 0, paddingLeft: 18, color: "#5F665A", fontSize: 11, lineHeight: 1.9 }}>
+                  <li>Professional, tailored CV</li><li>ATS-friendly formatting</li><li>PDF + Word delivery</li><li>One free revision</li>
+                </ul>
+                <div style={{ flex: "1 1 280px", textAlign: "right" }}>
+                  {error && <p role="alert" style={{ color: "#B43D35", fontSize: 12, margin: "0 0 9px" }}>{error}</p>}
+                  <button type="submit" disabled={busy} style={{ width: "100%", maxWidth: 390, border: 0, borderRadius: 999, padding: "15px 20px", background: busy ? "#9D9A97" : "#245DDE", color: "#fff", font: "inherit", fontWeight: 800, fontSize: 13, cursor: busy ? "wait" : "pointer", boxShadow: "0 8px 18px rgba(36,93,222,.22)" }}>
+                    {busy ? "Preparing secure checkout…" : `⚡ Continue to Secure Payment · ₹${price.price} →`}
+                  </button>
+                  <p style={{ color: "#8B7E74", fontSize: 10, margin: "9px 0 0" }}>♙ Secure checkout via Razorpay. Delivery time starts after payment and receipt of all required details. Express subject to availability.</p>
                 </div>
-                {!user && <div style={{ padding: 12, borderRadius: 10, background: "#FDF6E8", color: "#8A641E", fontSize: 13 }}>Please sign in before submitting your request. Your details and uploaded CV stay linked to your account.</div>}
-                <div className="cs-field"><label className="cs-label" htmlFor="cs-name">FULL NAME</label><input id="cs-name" required maxLength={120} style={inputStyle} value={form.full_name} onChange={(e) => update("full_name", e.target.value)} placeholder="Your full name" /></div>
-                <div className="cs-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div className="cs-field"><label className="cs-label" htmlFor="cs-email">EMAIL</label><input id="cs-email" type="email" required maxLength={254} style={inputStyle} value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="you@example.com" /></div>
-                  <div className="cs-field"><label className="cs-label" htmlFor="cs-phone">PHONE / WHATSAPP</label><input id="cs-phone" required maxLength={30} style={inputStyle} value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+91..." /></div>
-                </div>
-                <div className="cs-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div className="cs-field"><label className="cs-label" htmlFor="cs-market">TARGET MARKET</label><select id="cs-market" style={inputStyle} value={form.market} onChange={(e) => update("market", e.target.value)}><option>India</option><option>UAE / Gulf</option></select></div>
-                  <div className="cs-field"><label className="cs-label" htmlFor="cs-exp">EXPERIENCE</label><input id="cs-exp" required maxLength={80} style={inputStyle} value={form.experience} onChange={(e) => update("experience", e.target.value)} placeholder="e.g. 3 years" /></div>
-                </div>
-                <div className="cs-field"><label className="cs-label" htmlFor="cs-role">TARGET JOB ROLE</label><input id="cs-role" required maxLength={120} style={inputStyle} value={form.target_role} onChange={(e) => update("target_role", e.target.value)} placeholder="e.g. Senior AR Caller" /></div>
-                <div className="cs-field"><label className="cs-label" htmlFor="cs-notes">WHAT WOULD YOU LIKE HELP WITH?</label><textarea id="cs-notes" rows={4} maxLength={2000} style={{ ...inputStyle, resize: "vertical" }} value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Share your goals, challenges or any important details..." /></div>
-                <div className="cs-field"><label className="cs-label" htmlFor="cs-file">UPLOAD EXISTING CV (OPTIONAL)</label><input id="cs-file" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} style={{ ...inputStyle, padding: 10 }} /><span style={{ color: "#8791A2", fontSize: 11 }}>PDF or DOCX · max 8 MB · stored privately</span></div>
-                {error && <p role="alert" style={{ margin: 0, color: "#B54444", fontSize: 13 }}>{error}</p>}
-                <button type="submit" disabled={busy} style={{ border: 0, borderRadius: 13, background: busy ? "#8792A5" : "#172033", color: "#fff", padding: "15px 18px", font: "inherit", fontSize: 14, fontWeight: 800, cursor: busy ? "wait" : "pointer" }}>{busy ? "Submitting request..." : user ? "Submit service request" : "Sign in to continue"}</button>
-                <p style={{ margin: 0, textAlign: "center", color: "#8A94A4", fontSize: 11, lineHeight: 1.5 }}>By submitting, you agree that CVPassport may contact you about this request. Your information is not sold to recruiters.</p>
-              </form>
-            </div>
+              </div>
+            </form>
           </>
         )}
       </div>
