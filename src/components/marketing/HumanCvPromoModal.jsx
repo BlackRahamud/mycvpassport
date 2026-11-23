@@ -119,7 +119,7 @@ const CSS = `
 .hcv-close{position:absolute;z-index:10;top:16px;right:16px;width:40px;height:40px;border:1px solid rgba(23,36,58,.1);border-radius:50%;background:rgba(255,255,255,.88);color:#17243a;font-size:26px;line-height:1;cursor:pointer;box-shadow:0 4px 16px rgba(23,36,58,.1);transition:transform .2s,background .2s}
 .hcv-close:hover{transform:rotate(90deg);background:#fff}
 .hcv-visual{position:relative;min-height:0;overflow:hidden;background:#e9d5c2;isolation:isolate}
-.hcv-photo,.hcv-photo-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 58%;transform:scale(1.025);transition:opacity .25s ease}
+.hcv-photo,.hcv-photo-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center;transform:none;transition:opacity .25s ease}
 .hcv-photo-fallback{background:radial-gradient(circle at 55% 28%,#f4d8bd,#b78d6d 75%)}
 .hcv-photo-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,248,240,.08) 0%,rgba(17,25,38,0) 30%,rgba(17,25,38,.08) 100%);pointer-events:none}
 .hcv-expert-note{position:absolute;top:30px;left:28px;display:flex;align-items:flex-start;gap:8px;color:#1C1B1A;text-shadow:none;font-family:Georgia,serif;font-style:italic;font-size:22px;line-height:1.05}
