@@ -24,6 +24,7 @@ import {
   suspendAccount,
   unsuspendAccount,
   queryAudit,
+  writeAudit,
   DEFAULT_OWNER_EMAIL,
 } from '../src/lib/admin/adminCore.js';
 import {
@@ -272,6 +273,47 @@ export default async function handler(req, res) {
         return res.status(200).json(await flagSet(db, { ...body, actor }));
       case 'set_incident':
         return res.status(200).json(await setIncident(db, { ...body, actor }));
+      case 'career_orders_list': {
+        const { data, error } = await db.from('career_service_orders')
+          .select('id,user_id,full_name,email,phone,market,service_type,target_role,experience,notes,cv_file_path,status,admin_notes,delivery_speed,price_minor,currency,payment_status,razorpay_payment_id,paid_at,delivered_file_path,created_at,updated_at')
+          .order('created_at', { ascending: false }).limit(150);
+        if (error) throw error;
+        const orders = await Promise.all((data || []).map(async (order) => {
+          let cv_url = null;
+          if (order.cv_file_path) {
+            const { data: signed } = await db.storage.from('career-service-files')
+              .createSignedUrl(order.cv_file_path, 600);
+            cv_url = signed?.signedUrl || null;
+          }
+          return { ...order, cv_url };
+        }));
+        return res.status(200).json({ ok: true, orders });
+      }
+      case 'career_order_update': {
+        const allowed = new Set(['new', 'awaiting_payment', 'paid', 'in_progress', 'delivered', 'cancelled']);
+        const id = String(body.id || '');
+        const status = String(body.status || '');
+        if (!/^[0-9a-f-]{36}$/i.test(id) || !allowed.has(status)) {
+          return res.status(400).json({ ok: false, error: 'Invalid order or status' });
+        }
+        const admin_notes = typeof body.admin_notes === 'string' ? body.admin_notes.slice(0, 2000) : '';
+        const { data: before, error: readError } = await db.from('career_service_orders')
+          .select('id,email,status,admin_notes').eq('id', id).single();
+        if (readError) throw readError;
+        const { data, error } = await db.from('career_service_orders')
+          .update({ status, admin_notes, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select('id,status,admin_notes,updated_at')
+          .single();
+        if (error) throw error;
+        const audit = await writeAudit(db, {
+          actor, action: 'career_service_order_updated', targetType: 'career_service_order',
+          targetId: id, targetEmail: before.email,
+          before: { status: before.status, admin_notes: before.admin_notes },
+          after: { status: data.status, admin_notes: data.admin_notes },
+        });
+        return res.status(200).json({ ok: true, order: data, audit: audit.ok ? 'ok' : 'failed' });
+      }
       case 'analytics':
         return res.status(200).json(await analyticsSummary());
       default:

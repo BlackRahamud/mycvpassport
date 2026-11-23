@@ -157,7 +157,7 @@ async function countWhere(table, build) {
 
 const NAV = [
   { group: "Overview", items: [{ id: "overview", label: "Overview", icon: "overview" }] },
-  { group: "Core", items: [{ id: "users", label: "Users and revenue", icon: "users" }, { id: "ops", label: "Ops", icon: "ops" }, { id: "plans", label: "Plan builder", icon: "plans" }] },
+  { group: "Core", items: [{ id: "users", label: "Users and revenue", icon: "users" }, { id: "ops", label: "Ops", icon: "ops" }, { id: "plans", label: "Plan builder", icon: "plans" }, { id: "career", label: "Career Services", icon: "doc" }] },
   { group: "Control", items: [{ id: "emergency", label: "Emergency", icon: "emergency", badge: "!" }, { id: "access", label: "Access and audit", icon: "access" }] },
   { group: "Growth", items: [{ id: "marketing", label: "Marketing", icon: "marketing" }, { id: "analytics", label: "Analytics", icon: "analytics" }, { id: "prospects", label: "Prospect radar", icon: "prospects" }] },
 ];
@@ -201,6 +201,8 @@ export default function AdminPanelV3({ preview }) {
   const [analytics, setAnalytics] = useState(null);
   const [incidentMsg, setIncidentMsg] = useState("");
   const [incidentPortal, setIncidentPortal] = useState("both");
+  const [careerOrders, setCareerOrders] = useState([]);
+  const [careerLoading, setCareerLoading] = useState(false);
 
   const showToast = useCallback((text, ok = true) => { setToast({ text, ok }); setTimeout(() => setToast(null), 2600); }, []);
 
@@ -225,6 +227,7 @@ export default function AdminPanelV3({ preview }) {
       setAudit(preview.audit || { rows: [], data_state: "real" });
       setFlags(preview.flags || { flags: [{ key: "candidate_checkout", enabled: true }, { key: "hr_checkout", enabled: true }, { key: "ai_evaluation", enabled: true }, { key: "ats_checker", enabled: true }, { key: "pdf_export", enabled: false }, { key: "hr_portal", enabled: true }], data_state: "real" });
       setAnalytics(preview.analytics || { posthog: { data_state: "real", tiles: [{ label: "Weekly active users", value: "1,240" }] }, ga: { data_state: "ga" } });
+      setCareerOrders(preview.careerOrders || []);
       return;
     }
     const { data: profs } = await supabase.from("profiles")
@@ -259,6 +262,10 @@ export default function AdminPanelV3({ preview }) {
     setAudit(await callAdmin("audit_query", { limit: 20 }));
     setFlags(await callAdmin("flags_list", {}));
     setAnalytics(await callAdmin("analytics", {}));
+    setCareerLoading(true);
+    const careerResult = await callAdmin("career_orders_list", {});
+    setCareerOrders(careerResult.orders || []);
+    setCareerLoading(false);
   }, [preview]);
 
   useEffect(() => { if (authed) loadAll(); }, [authed, loadAll]);
@@ -593,11 +600,62 @@ export default function AdminPanelV3({ preview }) {
     </>
   );
 
+  const renderCareerServices = () => (
+    <>
+      {sectionTitle("Career Services", "Review incoming requests, contact candidates and manage delivery")}
+      <div className="adv3-card" style={{ padding: 20, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div><p style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>{careerOrders.length}</p><p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>Requests loaded · newest first</p></div>
+        <button type="button" onClick={async () => { setCareerLoading(true); const r = await callAdmin("career_orders_list", {}); setCareerOrders(r.orders || []); setCareerLoading(false); }} style={{ border: 0, borderRadius: 10, background: ACCENT, color: "#fff", padding: "10px 15px", fontWeight: 700, cursor: "pointer" }}>Refresh requests</button>
+      </div>
+      {careerLoading && <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading requests…</p>}
+      {!careerLoading && careerOrders.length === 0 && <div className="adv3-card" style={{ padding: 30, textAlign: "center" }}><h3 style={{ margin: "0 0 7px" }}>No service requests yet</h3><p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>New submissions from /career-services will appear here.</p></div>}
+      <div style={{ display: "grid", gap: 14 }}>
+        {careerOrders.map((order) => (
+          <article key={order.id} className="adv3-card" style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>{order.full_name}</p>
+                <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--muted)" }}>{order.email} · {order.phone}</p>
+              </div>
+              <span style={{ fontSize: 11, color: ACCENT, background: "#EDF1FF", borderRadius: 999, padding: "5px 10px", fontWeight: 700 }}>{String(order.status || "new").replace(/_/g, " ")}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, margin: "16px 0" }}>
+              {[["Service", "Human CV writing"],["Delivery", String(order.delivery_speed || "standard").toUpperCase()],["Price", `₹${Number(order.price_minor || 0) / 100} ${order.currency || "INR"}`],["Payment", order.payment_status || "pending"],["Market", order.market],["Target role", order.target_role],["Received", new Date(order.created_at).toLocaleString()]].map(([label,value]) => <div key={label} style={{ background: "var(--surface2)", borderRadius: 11, padding: 11 }}><p style={{ margin: 0, color: "var(--muted2)", fontSize: 10, textTransform: "uppercase", fontWeight: 800 }}>{label}</p><p style={{ margin: "5px 0 0", fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>{value || "—"}</p></div>)}
+            </div>
+            {order.notes && <p style={{ whiteSpace: "pre-wrap", color: "var(--soft)", fontSize: 13, lineHeight: 1.6 }}>{order.notes}</p>}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+              {order.cv_url ? <a href={order.cv_url} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 12.5, fontWeight: 700 }}>Open uploaded CV ↗</a> : <span style={{ color: "var(--muted2)", fontSize: 12 }}>No CV attached</span>}
+              <span style={{ flex: 1 }} />
+              <select aria-label={`Status for ${order.full_name}`} value={order.status} onChange={async (e) => {
+                const status = e.target.value;
+                const result = await callAdmin("career_order_update", { id: order.id, status, admin_notes: order.admin_notes || "" });
+                if (result.ok) { setCareerOrders((items) => items.map((item) => item.id === order.id ? { ...item, status } : item)); showToast("Request status updated"); }
+                else showToast(result.error || "Could not update request", false);
+              }} style={{ border: "1px solid var(--border2)", borderRadius: 9, padding: "9px 10px", background: "var(--card)", color: "var(--text)", font: "inherit", fontSize: 12 }}>
+                {["new","awaiting_payment","paid","in_progress","delivered","cancelled"].map((status) => <option key={status} value={status}>{status.replace(/_/g," ")}</option>)}
+              </select>
+            </div>
+            <details style={{ marginTop: 14 }}>
+              <summary style={{ cursor: "pointer", color: "var(--soft)", fontSize: 12.5, fontWeight: 700 }}>Admin notes</summary>
+              <textarea defaultValue={order.admin_notes || ""} maxLength={2000} rows={3} placeholder="Internal notes, follow-up details..." style={{ width: "100%", boxSizing: "border-box", marginTop: 10, padding: 11, border: "1px solid var(--border2)", borderRadius: 10, background: "var(--surface2)", color: "var(--text)", font: "inherit", fontSize: 12.5 }} onBlur={async (e) => {
+                const admin_notes = e.target.value;
+                const result = await callAdmin("career_order_update", { id: order.id, status: order.status, admin_notes });
+                if (result.ok) { setCareerOrders((items) => items.map((item) => item.id === order.id ? { ...item, admin_notes } : item)); showToast("Internal note saved"); }
+                else showToast(result.error || "Could not save note", false);
+              }} />
+            </details>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+
   const renderSection = () => {
     switch (sec) {
       case "users": return renderUsers();
       case "ops": return renderOps();
       case "plans": return renderPlans();
+      case "career": return renderCareerServices();
       case "emergency": return renderEmergency();
       case "access": return renderAccess();
       case "marketing": return renderMarketing();

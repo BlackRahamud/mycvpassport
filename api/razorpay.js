@@ -164,7 +164,42 @@ async function handleOrder(req, res, body) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
-  const { plan, service } = body || {};
+  const { plan, service, cv_service, career_order_id } = body || {};
+  if (cv_service) {
+    const prices = { standard: 19900, express: 29900 };
+    const expectedAmount = prices[cv_service];
+    if (!expectedAmount || !career_order_id || !supabase) {
+      return res.status(400).json({ error: 'Invalid CV service order' });
+    }
+    const { data: careerOrder, error: careerError } = await supabase
+      .from('career_service_orders')
+      .select('id,user_id,payment_status,delivery_speed,price_minor,currency')
+      .eq('id', career_order_id)
+      .eq('user_id', user.id)
+      .single();
+    if (careerError || !careerOrder) return res.status(404).json({ error: 'Service request not found' });
+    if (careerOrder.payment_status === 'paid') return res.status(409).json({ error: 'This request is already paid' });
+    if (careerOrder.delivery_speed !== cv_service || Number(careerOrder.price_minor) !== expectedAmount || careerOrder.currency !== 'INR') {
+      return res.status(400).json({ error: 'The selected service price does not match this request' });
+    }
+    try {
+      const razorpay = new Razorpay({ key_id: RAZORPAY_KEY_ID, key_secret: RAZORPAY_SECRET });
+      const order = await razorpay.orders.create({
+        amount: expectedAmount,
+        currency: 'INR',
+        receipt: `cvp_cv_${careerOrder.id.slice(0, 8)}_${Date.now()}`,
+        notes: { userId: user.id, cvService: cv_service, careerOrderId: careerOrder.id, currency: 'INR' },
+      });
+      const { error: updateError } = await supabase.from('career_service_orders')
+        .update({ razorpay_order_id: order.id, status: 'awaiting_payment', updated_at: new Date().toISOString() })
+        .eq('id', careerOrder.id);
+      if (updateError) throw updateError;
+      return res.status(200).json({ orderId: order.id, amount: order.amount, currency: order.currency });
+    } catch (err) {
+      console.error('[razorpay] CV service order failed', err?.message || err);
+      return res.status(500).json({ error: 'Failed to create CV service payment' });
+    }
+  }
   // Razorpay path is INR-only by design — the gateway is only configured
   // for the India market. Currency and amount are NEVER read from the
   // client; both are derived server-side from the single price table.
@@ -240,6 +275,8 @@ async function handleVerify(req, res, body) {
     userId,
     plan,
     service,
+    cv_service,
+    career_order_id,
   } = body || {};
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -250,8 +287,17 @@ async function handleVerify(req, res, body) {
     return res.status(403).json({ error: 'User mismatch' });
   }
 
-  // Accept either a tier `plan` or a one-time a-la-carte `service`.
-  if (service) {
+  if (cv_service) {
+    const prices = { standard: 19900, express: 29900 };
+    if (!prices[cv_service] || !career_order_id || !supabase) return res.status(400).json({ error: 'Invalid CV service' });
+    const { data: careerOrder } = await supabase.from('career_service_orders')
+      .select('id,user_id,razorpay_order_id,delivery_speed,price_minor')
+      .eq('id', career_order_id).eq('user_id', user.id).single();
+    if (!careerOrder || careerOrder.razorpay_order_id !== razorpay_order_id ||
+        careerOrder.delivery_speed !== cv_service || Number(careerOrder.price_minor) !== prices[cv_service]) {
+      return res.status(400).json({ error: 'CV service order mismatch' });
+    }
+  } else if (service) {
     if (!alaCarteServiceFor(service)) {
       return res.status(400).json({ error: 'Invalid service' });
     }
@@ -312,9 +358,11 @@ async function handleWebhook(req, res, rawBody) {
   let userId = payment.notes?.userId;
   let plan = payment.notes?.plan;
   let service = payment.notes?.service;
+  let cvService = payment.notes?.cvService;
+  let careerOrderId = payment.notes?.careerOrderId;
   let quotedCurrency = payment.notes?.currency;
 
-  if ((!userId || (!plan && !service)) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
+  if ((!userId || (!plan && !service && !cvService)) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
     try {
       const razorpay = new Razorpay({
         key_id: RAZORPAY_KEY_ID,
@@ -324,6 +372,8 @@ async function handleWebhook(req, res, rawBody) {
       userId = userId || order.notes?.userId;
       plan = plan || order.notes?.plan;
       service = service || order.notes?.service;
+      cvService = cvService || order.notes?.cvService;
+      careerOrderId = careerOrderId || order.notes?.careerOrderId;
       quotedCurrency = quotedCurrency || order.notes?.currency;
     } catch (fetchErr) {
       console.error('[razorpay] webhook order fetch failed', { error: fetchErr?.message });
@@ -357,6 +407,34 @@ async function handleWebhook(req, res, rawBody) {
     return res.status(400).json({ error: policyError || mismatchError });
   }
   const currency = charged;
+
+  // Paid human-written CV service. The webhook is the durable source of truth.
+  if (cvService || careerOrderId) {
+    const prices = { standard: 19900, express: 29900 };
+    const expected = prices[cvService];
+    if (!userId || !careerOrderId || currency !== 'INR' || !expected || Number(payment.amount) !== expected) {
+      console.error('[razorpay] CV service payment rejected', { payment_id: payment.id, cvService, careerOrderId });
+      return res.status(400).json({ error: 'CV service payment details do not match' });
+    }
+    const { data: existing } = await supabase.from('payments').select('id').eq('payment_intent_id', payment.id).maybeSingle();
+    if (existing) return res.status(200).json({ received: true, idempotent: true });
+    const { data: careerOrder, error: orderReadError } = await supabase.from('career_service_orders')
+      .select('id,user_id,delivery_speed,price_minor,razorpay_order_id,payment_status')
+      .eq('id', careerOrderId).single();
+    if (orderReadError || !careerOrder || careerOrder.user_id !== userId ||
+        careerOrder.razorpay_order_id !== payment.order_id ||
+        careerOrder.delivery_speed !== cvService || Number(careerOrder.price_minor) !== expected) {
+      console.error('[razorpay] CV service order lookup mismatch', { careerOrderId, payment_id: payment.id });
+      return res.status(400).json({ error: 'CV service order not found or mismatched' });
+    }
+    const { error: updateError } = await supabase.from('career_service_orders')
+      .update({ payment_status: 'paid', status: 'paid', razorpay_payment_id: payment.id, paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', careerOrderId);
+    if (updateError) return res.status(500).json({ error: 'Could not update CV service order' });
+    await recordPayment(supabase, { user_id: userId, service: `human_cv_${cvService}`, amount: payment.amount, currency, external_ref: payment.order_id, payment_intent_id: payment.id });
+    await capturePostHogServer(userId, 'purchase_completed', { plan: `human_cv_${cvService}`, amount: Number(payment.amount || 0) / 100, currency, transaction_id: payment.id, gateway: 'razorpay' });
+    return res.status(200).json({ success: true });
+  }
 
   // ── A-la-carte one-time unlocks (e.g. linkedin_optimizer). Mirrors the
   // Ziina webhook's permissions branch: upsert `permissions` instead of

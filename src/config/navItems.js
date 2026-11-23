@@ -42,6 +42,7 @@ export const NAV_SECTIONS = [
       { label: 'AI Interviewer', href: '/interviewer/setup', icon: 'messageSquare', desc: 'Practise role-specific interviews', badge: 'NEW', requiresAuth: true },
       { label: 'Blog',        href: '/blog',    icon: 'book',      desc: 'Career advice & resume tips',                  requiresAuth: false },
       { label: 'Pricing',     href: '/pricing', icon: 'tag',       desc: "Plans & what's included",                      requiresAuth: false },
+      { label: 'Career Services', href: '/career-services', icon: 'briefcase', desc: 'Get personal CV and career support', badge: 'NEW', requiresAuth: false },
     ],
   },
 ];
