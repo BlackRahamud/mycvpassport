@@ -99,12 +99,7 @@ export default function HumanCvPromoModal() {
           <div className="hcv-visual" onPointerMove={handleTilt} onPointerLeave={resetTilt}>
             {!photoFailed ? <img className="hcv-photo" src={CONSULTANT_IMAGE} alt="CVPassport career consultant" onError={() => setPhotoFailed(true)} /> : <div className="hcv-photo-fallback" />}
             <div className="hcv-photo-shade" />
-            <div className="hcv-expert-note"><span className="hcv-note-spark">✳</span><span>Meet your<br />CV expert</span><b>↘</b></div>
-            <div className="hcv-doc-stack">
-              <DocumentCard />
-              <span className="hcv-transform-arrow">↗</span>
-              <DocumentCard expert />
-            </div>
+            <div className="hcv-expert-note"><span className="hcv-note-spark">✳</span><span>Meet your<br />CV expert</span></div>
           </div>
 
           <div className="hcv-content">
@@ -121,13 +116,12 @@ export default function HumanCvPromoModal() {
             </div>
 
             <div className="hcv-pricing">
-              <div className="hcv-price-card"><span className="hcv-price-icon">✦</span><div><b>Standard</b><strong>₹199</strong><small>Delivery within 3 hours</small></div></div>
-              <div className="hcv-price-card"><span className="hcv-price-icon">↗</span><div><b>Express</b><strong>₹299</strong><small>Priority · 30–60 minutes*</small></div></div>
+              <div className="hcv-price-card is-selected" aria-label="Standard, selected"><span className="hcv-price-icon">✦</span><div><b>Standard</b><strong>₹199</strong><small>Delivery within 3 hours</small></div></div>
+              <div className="hcv-price-card" aria-label="Express"><span className="hcv-price-icon">↗</span><div><b>Express</b><strong>₹299</strong><small>Priority · 30–60 minutes*</small></div></div>
             </div>
 
             <Link to="/career-services" className="hcv-cta" onClick={dismiss}>Get My CV Professionally Written <span>→</span></Link>
             <p className="hcv-payment-note">Choose Standard or Express delivery on the next page, then complete your secure checkout.</p>
-            <div className="hcv-footnote"><span><CheckIcon /> Human-written · ATS-friendly</span><span>PDF + Word · One revision</span></div>
           </div>
         </section>
       </div>
@@ -140,12 +134,12 @@ const CSS = `
 .hcv-modal{position:relative;display:grid;grid-template-columns:.92fr 1.08fr;width:min(1040px,100%);max-height:min(760px,calc(100dvh - 44px));min-height:min(590px,calc(100dvh - 44px));overflow:hidden;border:1px solid rgba(255,255,255,.72);border-radius:30px;background:linear-gradient(135deg,#fffaf4 0%,#f7eee5 100%);box-shadow:0 42px 110px rgba(9,17,30,.42),inset 0 1px rgba(255,255,255,.9);animation:hcv-rise .42s cubic-bezier(.2,.8,.2,1) both}
 .hcv-close{position:absolute;z-index:10;top:16px;right:16px;width:40px;height:40px;border:1px solid rgba(23,36,58,.1);border-radius:50%;background:rgba(255,255,255,.88);color:#17243a;font-size:26px;line-height:1;cursor:pointer;box-shadow:0 4px 16px rgba(23,36,58,.1);transition:transform .2s,background .2s}
 .hcv-close:hover{transform:rotate(90deg);background:#fff}
-.hcv-visual{position:relative;min-height:0;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#f5e7d8 0%,#e9d5c2 58%,#d7b99f 100%);isolation:isolate;perspective:900px}
-.hcv-photo,.hcv-photo-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center;transform:none;transition:opacity .25s ease}
+.hcv-visual{position:relative;min-height:0;overflow:hidden;background:#e9d5c2;isolation:isolate}
+.hcv-photo,.hcv-photo-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 58%;transform:scale(1.025);transition:opacity .25s ease}
 .hcv-photo-fallback{background:radial-gradient(circle at 55% 28%,#f4d8bd,#b78d6d 75%)}
-.hcv-photo-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,25,38,0) 48%,rgba(17,25,38,.12) 100%);pointer-events:none}
-.hcv-expert-note{position:absolute;top:30px;left:28px;display:grid;grid-template-columns:auto auto;align-items:center;gap:8px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.2);font-family:Georgia,serif;font-style:italic;font-size:22px;line-height:1.05}
-.hcv-note-spark{color:#ffc17e;font-size:25px}.hcv-expert-note b{grid-column:2;font:normal 30px Georgia;transform:rotate(14deg)}
+.hcv-photo-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,248,240,.08) 0%,rgba(17,25,38,0) 30%,rgba(17,25,38,.08) 100%);pointer-events:none}
+.hcv-expert-note{position:absolute;top:30px;left:28px;display:flex;align-items:flex-start;gap:8px;color:#1C1B1A;text-shadow:none;font-family:Georgia,serif;font-style:italic;font-size:22px;line-height:1.05}
+.hcv-note-spark{color:#bd5527;font-size:25px}
 .hcv-doc-stack{position:absolute;left:20px;right:18px;bottom:24px;height:190px;transform:perspective(800px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg));transform-style:preserve-3d;transition:transform .16s ease-out}
 .hcv-doc{position:absolute;width:174px;height:188px;padding:15px 14px;border:1px solid rgba(255,255,255,.72);border-radius:17px;background:rgba(255,255,255,.76);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 18px 42px rgba(18,28,45,.24);color:#25334a}
 .hcv-doc-current{left:3%;bottom:0;transform:rotate(-8deg)}
@@ -168,15 +162,14 @@ const CSS = `
 .hcv-benefits>div b{font-size:10.5px;line-height:1.2}
 .hcv-pricing{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .hcv-price-card{display:flex;align-items:flex-start;gap:10px;padding:13px 11px;border:1px solid rgba(23,36,58,.1);border-radius:16px;background:rgba(255,255,255,.5);box-shadow:0 7px 22px rgba(31,43,61,.045)}
-.hcv-price-card:first-child{border-color:rgba(228,132,55,.62);box-shadow:0 0 0 1px rgba(228,132,55,.08),0 7px 22px rgba(31,43,61,.045)}
+.hcv-price-card.is-selected{border:1.5px solid #B85A3A;background:rgba(184,90,58,.075);box-shadow:0 0 0 1px rgba(184,90,58,.08),0 8px 24px rgba(31,43,61,.06)}
 .hcv-price-icon{display:grid;place-items:center;flex:0 0 29px;height:29px;border-radius:50%;background:#ffeadb;color:#bd5527;font-size:17px}
 .hcv-price-card b,.hcv-price-card strong,.hcv-price-card small{display:block}.hcv-price-card b{font-size:12px}.hcv-price-card strong{margin:1px 0;font-family:Georgia,serif;font-size:26px;letter-spacing:-.04em}.hcv-price-card small{color:#657080;font-size:9px;line-height:1.35}
-.hcv-cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 18px;border-radius:999px;background:#245be4;color:#fff;text-align:center;text-decoration:none;font-size:13px;font-weight:800;box-shadow:0 10px 24px rgba(36,91,228,.24);transition:transform .2s,box-shadow .2s,background .2s}
-.hcv-cta:hover{transform:translateY(-2px);background:#174bd0;box-shadow:0 14px 28px rgba(36,91,228,.3)}.hcv-cta span{font-size:19px}
+.hcv-cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 18px;border-radius:999px;background:#B85A3A;color:#fff;text-align:center;text-decoration:none;font-size:13px;font-weight:800;box-shadow:0 10px 24px rgba(184,90,58,.22);transition:transform .2s,box-shadow .2s,background .2s}
+.hcv-cta:hover{transform:translateY(-2px);background:#9F482F;box-shadow:0 14px 28px rgba(184,90,58,.28)}.hcv-cta span{font-size:19px}
 .hcv-payment-note{margin:8px 0 0;color:#7b8491;text-align:center;font-size:9px;line-height:1.45}
-.hcv-footnote{display:flex;justify-content:center;gap:13px;flex-wrap:wrap;margin-top:17px;color:#586474;font-size:10px}.hcv-footnote span{display:flex;align-items:center;gap:5px}.hcv-footnote svg{color:#b75a2b}
 @keyframes hcv-fade{from{opacity:0}to{opacity:1}}@keyframes hcv-rise{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(max-width:760px){.hcv-overlay{align-items:center;padding:10px}.hcv-modal{grid-template-columns:1fr;grid-template-rows:250px auto;min-height:0;max-height:calc(100dvh - 20px);border-radius:23px;overflow:auto}.hcv-visual{min-height:250px}.hcv-photo{object-position:center 38%}.hcv-expert-note{top:15px;left:17px;font-size:17px}.hcv-doc-stack{left:auto;right:10px;bottom:7px;width:245px;height:145px}.hcv-doc{width:116px;height:132px;padding:9px;border-radius:12px}.hcv-doc-current{left:1%;}.hcv-doc-expert{right:1%;}.hcv-doc strong{font-size:10px;margin-bottom:8px}.hcv-doc-line{height:4px;margin:5px 0}.hcv-doc-top{margin-bottom:7px}.hcv-doc-avatar{width:22px;height:22px}.hcv-transform-arrow{left:47%;bottom:44px;font-size:25px}.hcv-content{padding:23px 20px 22px;overflow:visible}.hcv-brand{margin-bottom:14px;font-size:16px}.hcv-brand-mark{font-size:24px}.hcv-content h2{font-size:clamp(29px,8vw,37px);margin:14px 0 9px}.hcv-description{font-size:12px;line-height:1.5}.hcv-benefits{gap:6px;margin:15px 0 13px}.hcv-benefits>div{min-height:68px;padding:7px 2px;gap:5px}.hcv-benefits>div span{width:27px;height:27px;font-size:18px}.hcv-benefits>div b{font-size:9px}.hcv-pricing{gap:7px;margin-bottom:13px}.hcv-price-card{padding:10px 8px;gap:6px}.hcv-price-icon{flex-basis:23px;height:23px;font-size:13px}.hcv-price-card b{font-size:10px}.hcv-price-card strong{font-size:22px}.hcv-price-card small{font-size:8px}.hcv-cta{padding:14px 10px;font-size:11.5px}.hcv-footnote{margin-top:12px;font-size:9px;gap:8px}.hcv-close{top:10px;right:10px;width:34px;height:34px}}
+@media(max-width:760px){.hcv-overlay{align-items:center;padding:10px}.hcv-modal{grid-template-columns:1fr;grid-template-rows:250px auto;min-height:0;max-height:calc(100dvh - 20px);border-radius:23px;overflow:auto}.hcv-visual{min-height:250px}.hcv-photo{object-position:center 38%}.hcv-expert-note{top:15px;left:17px;font-size:17px}.hcv-content{padding:23px 20px 22px;overflow:visible}.hcv-brand{margin-bottom:14px;font-size:16px}.hcv-brand-mark{font-size:24px}.hcv-content h2{font-size:clamp(29px,8vw,37px);margin:14px 0 9px}.hcv-description{font-size:12px;line-height:1.5}.hcv-benefits{gap:6px;margin:15px 0 13px}.hcv-benefits>div{min-height:68px;padding:7px 2px;gap:5px}.hcv-benefits>div span{width:27px;height:27px;font-size:18px}.hcv-benefits>div b{font-size:9px}.hcv-pricing{gap:7px;margin-bottom:13px}.hcv-price-card{padding:10px 8px;gap:6px}.hcv-price-icon{flex-basis:23px;height:23px;font-size:13px}.hcv-price-card b{font-size:10px}.hcv-price-card strong{font-size:22px}.hcv-price-card small{font-size:8px}.hcv-cta{padding:14px 10px;font-size:11.5px}.hcv-footnote{margin-top:12px;font-size:9px;gap:8px}.hcv-close{top:10px;right:10px;width:34px;height:34px}}
 @media(max-width:380px){.hcv-modal{grid-template-rows:220px auto}.hcv-visual{min-height:220px}.hcv-benefits>div b{font-size:8px}.hcv-content{padding:19px 14px}.hcv-content h2{font-size:28px}}
 @media(prefers-reduced-motion:reduce){.hcv-overlay,.hcv-modal,.hcv-close,.hcv-cta,.hcv-photo,.hcv-doc-stack{animation:none!important;transition:none!important}}
 `;
