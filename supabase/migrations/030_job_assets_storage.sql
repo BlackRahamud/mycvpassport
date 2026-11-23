@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- 022 — job description images: public Storage bucket
+-- 030 — job description images: public Storage bucket
 -- ─────────────────────────────────────────────────────────────
 -- The Post-a-Job description editor lets an employer drop an image
 -- into the listing body. The file is uploaded straight from the
