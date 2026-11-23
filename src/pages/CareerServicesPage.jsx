@@ -1,4 +1,4 @@
-﻿// Career Services page — self-contained consultant image + existing Razorpay checkout.
+// Career Services page — self-contained consultant image + existing Razorpay checkout.
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -109,7 +109,7 @@ export default function CareerServicesPage({ user }) {
       if (!token) throw new Error("Your session has expired. Please sign in again.");
 
       if (file) {
-        const safeName = file.name.replace(/[^a-zA-Z0-9.\_-]/g, "-").slice(-80);
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
         uploadedPath = `${user.id}/${Date.now()}-${safeName}`;
         const { error: uploadError } = await supabase.storage
           .from("career-service-files")
