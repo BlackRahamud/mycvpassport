@@ -27,6 +27,9 @@ CREATE INDEX IF NOT EXISTS career_service_orders_user_id_idx
 
 ALTER TABLE public.career_service_orders ENABLE ROW LEVEL SECURITY;
 
+GRANT SELECT, INSERT ON public.career_service_orders TO authenticated;
+GRANT ALL ON public.career_service_orders TO service_role;
+
 DROP POLICY IF EXISTS "Candidates create own career service requests" ON public.career_service_orders;
 CREATE POLICY "Candidates create own career service requests"
   ON public.career_service_orders FOR INSERT TO authenticated
