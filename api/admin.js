@@ -24,6 +24,7 @@ import {
   suspendAccount,
   unsuspendAccount,
   queryAudit,
+  writeAudit,
   DEFAULT_OWNER_EMAIL,
 } from '../src/lib/admin/adminCore.js';
 import {
@@ -296,13 +297,22 @@ export default async function handler(req, res) {
           return res.status(400).json({ ok: false, error: 'Invalid order or status' });
         }
         const admin_notes = typeof body.admin_notes === 'string' ? body.admin_notes.slice(0, 2000) : '';
+        const { data: before, error: readError } = await db.from('career_service_orders')
+          .select('id,email,status,admin_notes').eq('id', id).single();
+        if (readError) throw readError;
         const { data, error } = await db.from('career_service_orders')
           .update({ status, admin_notes, updated_at: new Date().toISOString() })
           .eq('id', id)
           .select('id,status,admin_notes,updated_at')
           .single();
         if (error) throw error;
-        return res.status(200).json({ ok: true, order: data, actor: actor.email });
+        const audit = await writeAudit(db, {
+          actor, action: 'career_service_order_updated', targetType: 'career_service_order',
+          targetId: id, targetEmail: before.email,
+          before: { status: before.status, admin_notes: before.admin_notes },
+          after: { status: data.status, admin_notes: data.admin_notes },
+        });
+        return res.status(200).json({ ok: true, order: data, audit: audit.ok ? 'ok' : 'failed' });
       }
       case 'analytics':
         return res.status(200).json(await analyticsSummary());
