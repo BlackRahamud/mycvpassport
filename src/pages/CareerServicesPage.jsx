@@ -198,8 +198,8 @@ export default function CareerServicesPage({ user }) {
                   <span>✎ Human written</span><span>▤ ATS-friendly</span><span>▣ PDF + Word</span><span>↻ One revision</span>
                 </div>
               </div>
-              <div style={{ minHeight: 145, borderRadius: 14, background: "radial-gradient(circle at 70% 30%,#F8D7BF,transparent 55%),linear-gradient(135deg,#F5E6D9,#FFF9F3)", display: "grid", placeItems: "center", color: "#A65B37", fontFamily: "Georgia,serif", fontSize: 20, textAlign: "center", padding: 18 }}>
-                <div style={{ transform: "rotate(-5deg)", background: "#fff", padding: "17px 25px", boxShadow: "0 12px 25px rgba(90,55,35,.12)", borderRadius: 7 }}>CV <span style={{ color: "#B65D2C" }}>Ready</span><div style={{ fontFamily: "Arial", fontSize: 9, marginTop: 7, color: "#8792A2" }}>YOUR NEXT CHAPTER</div></div>
+              <div style={{ minHeight: 190, height: 190, borderRadius: 14, overflow: "hidden", background: "#F5E6D9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <img src="/images/career-consultant.jpg" alt="CVPassport career consultant" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "58% 38%" }} />
               </div>
             </section>
 
