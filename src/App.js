@@ -76,6 +76,7 @@ const AdminCostPage        = lazy(() => import(/* webpackChunkName: "admin" */  
 const AdminProspectsPage   = lazy(() => import(/* webpackChunkName: "admin" */       "./pages/AdminProspectsPage"));
 const GulfCareerPage       = lazy(() => import(/* webpackChunkName: "gulf-career" */ "./pages/GulfCareerPage"));
 const GulfSalaryPage       = lazy(() => import(/* webpackChunkName: "gulf-salary" */ "./pages/GulfSalaryPage"));
+const CareerServicesPage    = lazy(() => import(/* webpackChunkName: "career-services" */ "./pages/CareerServicesPage"));
 
 const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
@@ -468,6 +469,7 @@ export default function App() {
               <Route path="/scout" element={!authReady ? null : user ? <ScoutDashboard user={user} isPro={isPro} /> : <NavigateToAuth />} />
               <Route path="/transform" element={!authReady ? null : <TransformPage user={user} isPro={isPro} />} />
               <Route path="/transform/success" element={!authReady ? null : <TransformSuccessPage user={user} isPro={isPro} />} />
+              <Route path="/career-services" element={<CareerServicesPage user={user} />} />
               <Route path="/gulf-career" element={<GulfCareerPage />} />
               <Route path="/gulf/:reportId" element={<GulfCareerPage />} />
               <Route path="/gulf-salary" element={<GulfSalaryPage />} />
