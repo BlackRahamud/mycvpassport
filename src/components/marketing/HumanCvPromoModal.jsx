@@ -7,22 +7,6 @@ const SHOWN_KEY = "cvp_human_cv_glass_promo_shown";
 const DISMISSED_KEY = "cvp_human_cv_glass_promo_dismissed_at";
 const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
-function CheckIcon() {
-  return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-
-function DocumentCard({ expert = false, className = "" }) {
-  return (
-    <div className={`hcv-doc ${expert ? "hcv-doc-expert" : "hcv-doc-current"} ${className}`} aria-hidden="true">
-      <div className="hcv-doc-top"><span className="hcv-doc-avatar">{expert ? "JK" : "CV"}</span><span className="hcv-doc-lines"><i /><i /></span></div>
-      <strong>{expert ? "Expert CV" : "Your CV"}</strong>
-      <div className="hcv-doc-line wide" /><div className="hcv-doc-line" /><div className="hcv-doc-line short" />
-      <div className="hcv-doc-line wide" /><div className="hcv-doc-line" />
-      {expert && <span className="hcv-doc-check"><CheckIcon /></span>}
-    </div>
-  );
-}
-
 export default function HumanCvPromoModal() {
   const [open, setOpen] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
