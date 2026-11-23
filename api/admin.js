@@ -275,7 +275,7 @@ export default async function handler(req, res) {
         return res.status(200).json(await setIncident(db, { ...body, actor }));
       case 'career_orders_list': {
         const { data, error } = await db.from('career_service_orders')
-          .select('id,user_id,full_name,email,phone,market,service_type,target_role,experience,notes,cv_file_path,status,admin_notes,created_at,updated_at')
+          .select('id,user_id,full_name,email,phone,market,service_type,target_role,experience,notes,cv_file_path,status,admin_notes,delivery_speed,price_minor,currency,payment_status,razorpay_payment_id,paid_at,delivered_file_path,created_at,updated_at')
           .order('created_at', { ascending: false }).limit(150);
         if (error) throw error;
         const orders = await Promise.all((data || []).map(async (order) => {
@@ -290,7 +290,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, orders });
       }
       case 'career_order_update': {
-        const allowed = new Set(['new', 'contacted', 'awaiting_payment', 'in_progress', 'delivered', 'cancelled']);
+        const allowed = new Set(['new', 'awaiting_payment', 'paid', 'in_progress', 'delivered', 'cancelled']);
         const id = String(body.id || '');
         const status = String(body.status || '');
         if (!/^[0-9a-f-]{36}$/i.test(id) || !allowed.has(status)) {
