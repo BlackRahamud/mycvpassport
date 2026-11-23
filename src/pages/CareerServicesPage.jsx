@@ -152,7 +152,6 @@ export default function CareerServicesPage({ user }) {
       logEvent("checkout_started", { plan: `human_cv_${delivery}`, amount: price.price, currency: "INR", gateway: "razorpay" });
       checkout.open();
     } catch (submitError) {
-      if (uploadedPath) await supabase.storage.from("career-service-files").remove([uploadedPath]).catch(() => {});
       setError(submitError?.message || "We couldn't start your order. Please try again.");
     } finally {
       setBusy(false);
