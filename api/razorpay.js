@@ -358,9 +358,11 @@ async function handleWebhook(req, res, rawBody) {
   let userId = payment.notes?.userId;
   let plan = payment.notes?.plan;
   let service = payment.notes?.service;
+  let cvService = payment.notes?.cvService;
+  let careerOrderId = payment.notes?.careerOrderId;
   let quotedCurrency = payment.notes?.currency;
 
-  if ((!userId || (!plan && !service)) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
+  if ((!userId || (!plan && !service && !cvService)) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
     try {
       const razorpay = new Razorpay({
         key_id: RAZORPAY_KEY_ID,
@@ -370,6 +372,8 @@ async function handleWebhook(req, res, rawBody) {
       userId = userId || order.notes?.userId;
       plan = plan || order.notes?.plan;
       service = service || order.notes?.service;
+      cvService = cvService || order.notes?.cvService;
+      careerOrderId = careerOrderId || order.notes?.careerOrderId;
       quotedCurrency = quotedCurrency || order.notes?.currency;
     } catch (fetchErr) {
       console.error('[razorpay] webhook order fetch failed', { error: fetchErr?.message });
@@ -405,8 +409,6 @@ async function handleWebhook(req, res, rawBody) {
   const currency = charged;
 
   // Paid human-written CV service. The webhook is the durable source of truth.
-  const cvService = payment.notes?.cvService;
-  const careerOrderId = payment.notes?.careerOrderId;
   if (cvService || careerOrderId) {
     const prices = { standard: 19900, express: 29900 };
     const expected = prices[cvService];
