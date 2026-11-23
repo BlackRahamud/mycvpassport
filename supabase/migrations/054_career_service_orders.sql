@@ -26,6 +26,39 @@ CREATE TABLE IF NOT EXISTS public.career_service_orders (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Safe upgrade path if an earlier draft of migration 054 was already applied.
+ALTER TABLE public.career_service_orders
+  ADD COLUMN IF NOT EXISTS delivery_speed text NOT NULL DEFAULT 'standard',
+  ADD COLUMN IF NOT EXISTS price_minor integer NOT NULL DEFAULT 19900,
+  ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'INR',
+  ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS razorpay_order_id text,
+  ADD COLUMN IF NOT EXISTS razorpay_payment_id text,
+  ADD COLUMN IF NOT EXISTS paid_at timestamptz,
+  ADD COLUMN IF NOT EXISTS delivered_file_path text;
+
+ALTER TABLE public.career_service_orders
+  DROP CONSTRAINT IF EXISTS career_service_orders_status_check;
+ALTER TABLE public.career_service_orders
+  ADD CONSTRAINT career_service_orders_status_check
+  CHECK (status IN ('new', 'awaiting_payment', 'paid', 'in_progress', 'delivered', 'cancelled'));
+ALTER TABLE public.career_service_orders
+  DROP CONSTRAINT IF EXISTS career_service_orders_delivery_speed_check;
+ALTER TABLE public.career_service_orders
+  ADD CONSTRAINT career_service_orders_delivery_speed_check CHECK (delivery_speed IN ('standard', 'express'));
+ALTER TABLE public.career_service_orders
+  DROP CONSTRAINT IF EXISTS career_service_orders_price_minor_check;
+ALTER TABLE public.career_service_orders
+  ADD CONSTRAINT career_service_orders_price_minor_check CHECK (price_minor IN (19900, 29900));
+ALTER TABLE public.career_service_orders
+  DROP CONSTRAINT IF EXISTS career_service_orders_currency_check;
+ALTER TABLE public.career_service_orders
+  ADD CONSTRAINT career_service_orders_currency_check CHECK (currency = 'INR');
+CREATE UNIQUE INDEX IF NOT EXISTS career_service_orders_razorpay_order_id_idx
+  ON public.career_service_orders (razorpay_order_id) WHERE razorpay_order_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS career_service_orders_razorpay_payment_id_idx
+  ON public.career_service_orders (razorpay_payment_id) WHERE razorpay_payment_id IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS career_service_orders_created_at_idx
   ON public.career_service_orders (created_at DESC);
 CREATE INDEX IF NOT EXISTS career_service_orders_status_idx
